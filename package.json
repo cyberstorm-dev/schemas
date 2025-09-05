@@ -1,0 +1,46 @@
+{
+  "name": "@cyberstorm-dev/attestor-schemas",
+  "version": "1.0.2",
+  "description": "Protocol Buffer schemas and generated clients for Cyberstorm Attestor service",
+  "main": "src/index.js",
+  "scripts": {
+    "build": "task build",
+    "generate": "task generate:all",
+    "generate:typescript": "task generate:typescript",
+    "generate:python": "task generate:python",
+    "generate:openapi": "task generate:openapi",
+    "lint": "task lint",
+    "format": "task format",
+    "clean": "task clean",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cyberstorm-dev/attestor-schemas.git"
+  },
+  "keywords": [
+    "protobuf",
+    "grpc",
+    "attestation",
+    "ethereum",
+    "cyberstorm"
+  ],
+  "author": "Allen Day",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/cyberstorm-dev/attestor-schemas/issues"
+  },
+  "homepage": "https://github.com/cyberstorm-dev/attestor-schemas#readme",
+  "dependencies": {
+    "google-protobuf": "^4.0.0",
+    "grpc-web": "^1.4.2"
+  },
+  "devDependencies": {
+    "swagger2openapi": "^7.0.8"
+  },
+  "files": [
+    "src/index.js",
+    "dist/typescript/",
+    "schemas/"
+  ]
+}
