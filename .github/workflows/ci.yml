@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate:
+    name: Build and Validate
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Setup Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+        
+    - name: Install Task
+      uses: arduino/setup-task@v1
+      with:
+        version: 3.x
+        
+    - name: Install Python dependencies
+      run: pip install protobuf>=4.0.0 grpcio>=1.50.0 googleapis-common-protos>=1.60.0
+        
+    - name: Run full validation
+      run: task validate

@@ -1,0 +1,147 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as prerelease'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  build-and-release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required for creating releases and uploading assets
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Setup Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+        
+    - name: Install Task
+      uses: arduino/setup-task@v1
+      with:
+        version: 3.x
+        
+    - name: Build and package all targets
+      run: task package:all
+      
+    - name: Run validation checks
+      run: task check:all
+      
+    - name: Create release archives
+      run: |
+        echo "📦 Creating release archives..."
+        echo "Current directory: $(pwd)"
+        echo "Dist directory contents:"
+        ls -la dist/
+        echo ""
+        echo "Python dist contents (if exists):"
+        ls -la dist/python-dist/ 2>/dev/null || echo "python-dist directory not found"
+        echo ""
+        
+        cd dist
+        
+        # Create archives for each language
+        tar -czf ../cyberstorm-attestor-schemas-typescript-${{ inputs.version }}.tar.gz typescript/
+        tar -czf ../cyberstorm-attestor-schemas-go-${{ inputs.version }}.tar.gz go/
+        tar -czf ../cyberstorm-attestor-schemas-openapi-${{ inputs.version }}.tar.gz openapi/
+        
+        # Copy Python distribution files using actual generated names
+        # The build process creates files like: cyberstorm_attestor_schemas-1.0.0-py3-none-any.whl
+        whl_file=$(find python-dist -name "*.whl" -type f | head -1)
+        if [ -n "$whl_file" ]; then
+          cp "$whl_file" ../$(basename "$whl_file")
+          echo "✅ Copied wheel: $(basename "$whl_file")"
+        else
+          echo "❌ No .whl files found in python-dist/"
+          exit 1
+        fi
+        
+        src_file=$(find python-dist -name "*.tar.gz" -type f | head -1)
+        if [ -n "$src_file" ]; then
+          cp "$src_file" ../$(basename "$src_file")
+          echo "✅ Copied source: $(basename "$src_file")"
+        else
+          echo "❌ No .tar.gz files found in python-dist/"
+          exit 1
+        fi
+        
+        echo "✅ All archives created successfully"
+        
+    - name: Extract clean version (without v prefix)
+      id: version
+      run: |
+        # Extract version without 'v' prefix for Python file naming
+        CLEAN_VERSION="${{ inputs.version }}"
+        CLEAN_VERSION=${CLEAN_VERSION#v}
+        echo "clean=$CLEAN_VERSION" >> $GITHUB_OUTPUT
+        echo "Clean version: $CLEAN_VERSION"
+        
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ inputs.version }}
+        name: Release ${{ inputs.version }}
+        prerelease: ${{ inputs.prerelease }}
+        generate_release_notes: true
+        files: |
+          cyberstorm-attestor-schemas-typescript-${{ inputs.version }}.tar.gz
+          cyberstorm-attestor-schemas-go-${{ inputs.version }}.tar.gz
+          cyberstorm-attestor-schemas-openapi-${{ inputs.version }}.tar.gz
+          cyberstorm_attestor_schemas-${{ steps.version.outputs.clean }}-py3-none-any.whl
+          cyberstorm_attestor_schemas-${{ steps.version.outputs.clean }}.tar.gz
+        body: |
+          ## Release ${{ inputs.version }}
+          
+          This release contains generated client libraries for multiple languages:
+          
+          ### 📦 Available Packages
+          
+          - **TypeScript/JavaScript**: `cyberstorm-attestor-schemas-typescript-${{ inputs.version }}.tar.gz`
+          - **Python**: `cyberstorm_attestor_schemas-${{ steps.version.outputs.clean }}-py3-none-any.whl` (wheel) and `cyberstorm_attestor_schemas-${{ steps.version.outputs.clean }}.tar.gz` (source)
+          - **Go**: `cyberstorm-attestor-schemas-go-${{ inputs.version }}.tar.gz`
+          - **OpenAPI**: `cyberstorm-attestor-schemas-openapi-${{ inputs.version }}.tar.gz`
+          
+          ### 🚀 Usage
+          
+          **TypeScript/JavaScript**:
+          ```bash
+          npm install ./cyberstorm-attestor-schemas-typescript-${{ inputs.version }}.tar.gz
+          ```
+          
+          **Python**:
+          ```bash
+          pip install ./cyberstorm_attestor_schemas-${{ steps.version.outputs.clean }}-py3-none-any.whl
+          ```
+          
+          **Go**:
+          ```bash
+          go get github.com/cyberstorm-dev/attestor-schemas/go@${{ inputs.version }}
+          ```
+          
+          All packages are generated from the same Protocol Buffer schemas and are fully compatible.
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

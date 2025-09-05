@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cyberstorm-attestor-schemas"
+name = "cyberstorm-schemas"
 version = "1.0.2"
-description = "Protocol Buffer schemas and generated clients for Cyberstorm Attestor service"
+description = "Protocol Buffer schemas and generated clients for Cyberstorm services"
 readme = "README.md"
 license = "MIT"
 authors = [
@@ -44,9 +44,9 @@ build = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/cyberstorm-dev/attestor-schemas"
-Repository = "https://github.com/cyberstorm-dev/attestor-schemas.git"
-Issues = "https://github.com/cyberstorm-dev/attestor-schemas/issues"
+Homepage = "https://github.com/cyberstorm-dev/schemas"
+Repository = "https://github.com/cyberstorm-dev/schemas.git"
+Issues = "https://github.com/cyberstorm-dev/schemas/issues"
 
 [tool.setuptools]
 packages = ["cyberstorm", "cyberstorm.attestor", "cyberstorm.attestor.v1"]

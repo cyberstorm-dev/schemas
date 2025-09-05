@@ -1,7 +1,7 @@
 {
-  "name": "@cyberstorm-dev/attestor-schemas",
+  "name": "@cyberstorm/schemas",
   "version": "1.0.2",
-  "description": "Protocol Buffer schemas and generated clients for Cyberstorm Attestor service",
+  "description": "Protocol Buffer schemas and generated clients for Cyberstorm services",
   "main": "src/index.js",
   "scripts": {
     "build": "task build",
@@ -16,7 +16,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cyberstorm-dev/attestor-schemas.git"
+    "url": "git+https://github.com/cyberstorm-dev/schemas.git"
   },
   "keywords": [
     "protobuf",
@@ -28,9 +28,9 @@
   "author": "Allen Day",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/cyberstorm-dev/attestor-schemas/issues"
+    "url": "https://github.com/cyberstorm-dev/schemas/issues"
   },
-  "homepage": "https://github.com/cyberstorm-dev/attestor-schemas#readme",
+  "homepage": "https://github.com/cyberstorm-dev/schemas#readme",
   "dependencies": {
     "google-protobuf": "^4.0.0",
     "grpc-web": "^1.4.2"

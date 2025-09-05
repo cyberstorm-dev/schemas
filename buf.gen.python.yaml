@@ -1,0 +1,6 @@
+version: v1
+plugins:
+  - plugin: buf.build/protocolbuffers/python
+    out: dist/python
+  - plugin: buf.build/protocolbuffers/pyi
+    out: dist/python

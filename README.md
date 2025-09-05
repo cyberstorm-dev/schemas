@@ -3,8 +3,8 @@
 > **Building Verifiable Professional Reputation as an Asset Class**
 
 [![CI](https://github.com/cyberstorm-dev/attestor-schemas/workflows/CI/badge.svg)](https://github.com/cyberstorm-dev/attestor-schemas/actions)
-[![NPM Version](https://img.shields.io/npm/v/@cyberstorm/attestor-schemas)](https://www.npmjs.com/package/@cyberstorm/attestor-schemas)
-[![PyPI Version](https://img.shields.io/pypi/v/cyberstorm-attestor-schemas)](https://pypi.org/project/cyberstorm-attestor-schemas/)
+[![NPM Version](https://img.shields.io/npm/v/@cyberstorm/schemas)](https://www.npmjs.com/package/@cyberstorm/schemas)
+[![PyPI Version](https://img.shields.io/pypi/v/cyberstorm-schemas)](https://pypi.org/project/cyberstorm-schemas/)
 [![Go Module Version](https://img.shields.io/github/v/tag/cyberstorm-dev/attestor-schemas)](https://pkg.go.dev/github.com/cyberstorm-dev/attestor-schemas)
 
 ## The Vision: Your Code Contributions as Verifiable Assets
@@ -82,14 +82,14 @@ Use [cyberstorm-attestor-client](https://github.com/cyberstorm-dev/attestor-clie
 
 Install via npm:
 ```bash
-npm install @cyberstorm/attestor-schemas
+npm install @cyberstorm/schemas
 ```
 
 ### Python
 
 Install via pip:
 ```bash
-pip install cyberstorm-attestor-schemas
+pip install cyberstorm-schemas
 ```
 
 ### Go
@@ -105,7 +105,7 @@ go get github.com/cyberstorm-dev/attestor-schemas
 
 **TypeScript/JavaScript**
 ```typescript
-import { Identity, Domain } from '@cyberstorm/attestor-schemas';
+import { Identity, Domain } from '@cyberstorm/schemas';
 
 // Register a GitHub identity with Ethereum address
 const identity = new Identity({
@@ -157,7 +157,7 @@ repoRegistration := &attestorv1.Repository{
 
 **TypeScript/JavaScript**
 ```typescript
-import { PullRequestContribution, PullRequestEvent } from '@cyberstorm/attestor-schemas';
+import { PullRequestContribution, PullRequestEvent } from '@cyberstorm/schemas';
 
 // Attest to a merged pull request
 const prContribution = new PullRequestContribution({

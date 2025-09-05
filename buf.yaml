@@ -1,4 +1,3 @@
 version: v2
 modules:
   - path: schemas/attestor/v1
-  - path: schemas/crypto/v1
