@@ -1,0 +1,146 @@
+syntax = "proto3";
+
+package cyberstorm.attestor.v1;
+
+option go_package = "github.com/cyberstorm-dev/schemas/go/cyberstorm/attestor/v1";
+
+import "google/protobuf/descriptor.proto";
+import "eas/v1/messages.proto";
+import "buf/validate/validate.proto";
+
+extend google.protobuf.MessageOptions {
+  optional string openapi_title = 50001;
+};
+
+
+// Identity registry - links domain identifier to Ethereum address
+message Identity {
+  option (openapi_title) = "V1Identity";
+  string domain = 1 [(buf.validate.field).string = {
+    min_len: 1,
+    max_len: 100,
+    pattern: "^[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"  // Valid domain format
+  }];
+  string identifier = 2 [(buf.validate.field).string = {
+    min_len: 1,
+    max_len: 100,
+    pattern: "^[a-zA-Z0-9._-]+$"  // Valid username format
+  }];
+  string registrant = 3 [(buf.validate.field).string = {
+    len: 42,
+    pattern: "^0x[a-fA-F0-9]{40}$"  // Ethereum address format
+  }];
+  string proof_url = 4 [(buf.validate.field).string = {
+    min_len: 1,
+    max_len: 500,
+    pattern: "^https?://.*"  // Valid URL format
+  }];
+  string attestor = 5 [(buf.validate.field).string = {
+    len: 42,
+    pattern: "^0x[a-fA-F0-9]{40}$"  // Ethereum address format
+  }];
+  bytes registrant_signature = 6 [(buf.validate.field).bytes = {
+    len: 65  // Standard Ethereum signature length
+  }];
+  bytes attestor_signature = 7 [(buf.validate.field).bytes = {
+    len: 65  // Standard Ethereum signature length
+  }];
+  eas.v1.Attestation eas_attestation = 8; // Optional: EAS attestation metadata when loaded from chain
+}
+
+// Repository for EAS attestation (stored on-chain)
+message Repository {
+  option (openapi_title) = "V1Repository";
+  string domain = 1 [(buf.validate.field).string = {
+    min_len: 1,
+    max_len: 100,
+    pattern: "^[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"  // Valid domain format
+  }];
+  string path = 2 [(buf.validate.field).string = {
+    min_len: 1,
+    max_len: 200,
+    pattern: "^[a-zA-Z0-9._/-]+$"  // Valid repository path (owner/repo)
+  }];
+  Identity registrant = 3;        // Identity of the registrant (GitHub user -> ETH address)
+  string proof_url = 4 [(buf.validate.field).string = {
+    min_len: 1,
+    max_len: 500,
+    pattern: "^https?://.*"  // Valid URL format
+  }];
+  string attestor = 5 [(buf.validate.field).string = {
+    len: 42,
+    pattern: "^0x[a-fA-F0-9]{40}$"  // Ethereum address format
+  }];
+  bytes registrant_signature = 6 [(buf.validate.field).bytes = {
+    len: 65  // Standard Ethereum signature length
+  }];
+  bytes attestor_signature = 7 [(buf.validate.field).bytes = {
+    len: 65  // Standard Ethereum signature length
+  }];
+  eas.v1.Attestation eas_attestation = 8; // Optional: EAS attestation metadata when loaded from chain
+  // Note: webhook_secret derived as keccak256(domain + path + registrant_signature + attestor_address)
+}
+
+enum ContributionEventType {
+  CONTRIBUTION_EVENT_TYPE_UNSPECIFIED = 0;
+  // Issue-related events
+  CONTRIBUTION_EVENT_TYPE_ISSUE_OPENED = 1;
+  CONTRIBUTION_EVENT_TYPE_ISSUE_CLOSED = 2;
+  // Pull request events
+  CONTRIBUTION_EVENT_TYPE_PULL_REQUEST_OPENED = 3;
+  CONTRIBUTION_EVENT_TYPE_PULL_REQUEST_CLOSED = 4;
+  CONTRIBUTION_EVENT_TYPE_PULL_REQUEST_MERGED = 5;
+  // Review events
+  CONTRIBUTION_EVENT_TYPE_REVIEW_CHANGES_REQUESTED = 6;
+  CONTRIBUTION_EVENT_TYPE_REVIEW_APPROVED = 7;
+  // Release events
+  CONTRIBUTION_EVENT_TYPE_RELEASE_RELEASED = 8;
+  CONTRIBUTION_EVENT_TYPE_RELEASE_PUBLISHED = 9;
+}
+
+message Contribution {
+  option (openapi_title) = "V1Contribution";
+  Identity identity = 1;          // Points to identity
+  Repository repository = 2;      // Points to repository
+  ContributionEventType event_type = 3 [(buf.validate.field).enum = {
+    defined_only: true,
+    not_in: [0]  // UNSPECIFIED not allowed
+  }];
+  repeated Contribution linked_contributions = 4 [(buf.validate.field).repeated = {
+    max_items: 50  // Reasonable limit for linked contributions
+  }];
+  string url = 5 [(buf.validate.field).string = {
+    min_len: 1,
+    max_len: 500,
+    pattern: "^https?://.*"  // Valid URL format
+  }];
+  bytes identity_uid = 6 [(buf.validate.field).bytes = {
+    len: 32  // Standard EAS UID length (32 bytes)
+  }];
+  bytes repository_uid = 7 [(buf.validate.field).bytes = {
+    len: 32  // Standard EAS UID length (32 bytes)
+  }];
+  repeated bytes linked_contribution_uids = 8 [(buf.validate.field).repeated = {
+    max_items: 50,
+    items: {
+      bytes: {
+        len: 32  // Each UID must be exactly 32 bytes
+      }
+    }
+  }];
+  eas.v1.Attestation eas_attestation = 9; // Optional: EAS attestation metadata when loaded from chain
+}
+
+// Webhook payload wrapper
+message WebhookEvent {
+  option (openapi_title) = "V1WebhookEvent";
+  Repository repository = 1;       // Repository where event occurred
+  ContributionEventType event_type = 2 [(buf.validate.field).enum = {
+    defined_only: true,
+    not_in: [0]  // UNSPECIFIED not allowed
+  }];
+  string raw_payload = 3 [(buf.validate.field).string = {
+    min_len: 1,
+    max_len: 1048576  // 1MB limit for webhook payload
+  }];
+}

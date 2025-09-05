@@ -1,0 +1,628 @@
+syntax = "proto3";
+
+package cyberstorm.attestor.v1;
+
+option go_package = "github.com/cyberstorm-dev/schemas/go/cyberstorm/attestor/v1";
+
+
+import "google/api/annotations.proto";
+import "cyberstorm/attestor/v1/messages.proto";
+import "buf/validate/validate.proto";
+
+// Generic attestation service - schema-driven EAS operations
+service AttestService {
+  // Create attestation using dynamic schema encoding
+  rpc CreateAttestation(CreateAttestationRequest) returns (CreateAttestationResponse) {
+    option (google.api.http) = {
+      post: "/v1/attest/create"
+      body: "*"
+    };
+  }
+
+  // Get schema information
+  rpc GetSchemas(GetSchemasRequest) returns (GetSchemasResponse) {
+    option (google.api.http) = {
+      get: "/v1/attest/schemas"
+    };
+  }
+
+  // Get specific schema definition
+  rpc GetSchema(GetSchemaRequest) returns (GetSchemaResponse) {
+    option (google.api.http) = {
+      get: "/v1/attest/schema/{schema_type}"
+    };
+  }
+}
+
+// Server-side signing service for automated operations
+service SignService {
+  // Server signs attestation using validator private key
+  rpc ServerSignAttestation(ServerSignAttestationRequest) returns (ServerSignAttestationResponse) {
+    option (google.api.http) = {
+      post: "/v1/sign/attest"
+      body: "*"
+    };
+  }
+
+  // Sign a message using server's private key
+  rpc SignMessage(SignMessageRequest) returns (SignMessageResponse) {
+    option (google.api.http) = {
+      post: "/v1/sign/message"
+      body: "*"
+    };
+  }
+
+  // Verify signatures
+  rpc VerifySignature(VerifySignatureRequest) returns (VerifySignatureResponse) {
+    option (google.api.http) = {
+      post: "/v1/sign/verify"
+      body: "*"
+    };
+  }
+
+  // Generate deterministic webhook secret for repository
+  rpc GenerateWebhookSecret(GenerateWebhookSecretRequest) returns (GenerateWebhookSecretResponse) {
+    option (google.api.http) = {
+      post: "/v1/sign/webhook-secret"
+      body: "*"
+    };
+  }
+
+  // Verify GitHub webhook signature (gRPC only)
+  rpc VerifyWebhookSignature(VerifyWebhookSignatureRequest) returns (VerifyWebhookSignatureResponse);
+
+  // Get server's public address
+  rpc GetServerAddress(GetServerAddressRequest) returns (GetServerAddressResponse) {
+    option (google.api.http) = {
+      get: "/v1/sign/address"
+    };
+  }
+}
+
+// Business logic service for contribution workflows
+service ContributionService {
+  // Repository management
+  rpc RegisterRepository(RegisterRepositoryRequest) returns (RegisterRepositoryResponse) {
+    option (google.api.http) = {
+      post: "/v1/repository/register"
+      body: "*"
+    };
+  }
+  rpc GetWebhookSecret(GetWebhookSecretRequest) returns (GetWebhookSecretResponse) {
+    option (google.api.http) = {
+      post: "/v1/repository/webhook-secret"
+      body: "*"
+    };
+  }
+  rpc ListRepositories(ListRepositoriesRequest) returns (ListRepositoriesResponse) {
+    option (google.api.http) = {
+      get: "/v1/repository/list"
+    };
+  }
+  rpc LookupRepository(LookupRepositoryRequest) returns (LookupRepositoryResponse) {
+    option (google.api.http) = {
+      post: "/v1/repository/lookup"
+      body: "*"
+    };
+  }
+
+  // Identity management
+  rpc RegisterIdentity(RegisterIdentityRequest) returns (RegisterIdentityResponse) {
+    option (google.api.http) = {
+      post: "/v1/identity/register"
+      body: "*"
+    };
+  }
+  rpc ValidateIdentity(ValidateIdentityRequest) returns (ValidateIdentityResponse) {
+    option (google.api.http) = {
+      post: "/v1/identity/validate"
+      body: "*"
+    };
+  }
+  rpc ListIdentities(ListIdentitiesRequest) returns (ListIdentitiesResponse) {
+    option (google.api.http) = {
+      get: "/v1/identity/list"
+    };
+  }
+  rpc LookupIdentity(LookupIdentityRequest) returns (LookupIdentityResponse) {
+    option (google.api.http) = {
+      get: "/v1/identity/lookup/{identifier}"
+    };
+  }
+
+  // Webhook processing
+  rpc ProcessWebhook(ProcessWebhookRequest) returns (ProcessWebhookResponse) {
+    option (google.api.http) = {
+      post: "/v1/webhook"
+      body: "*"
+    };
+  }
+
+  // Contribution queries
+  rpc GetContributions(GetContributionsRequest) returns (GetContributionsResponse) {
+    option (google.api.http) = {
+      post: "/v1/contributions/query"
+      body: "*"
+    };
+  }
+  rpc GetContributionsByIdentity(GetContributionsByIdentityRequest) returns (GetContributionsByIdentityResponse) {
+    option (google.api.http) = {
+      post: "/v1/contributions/by-identity"
+      body: "*"
+    };
+  }
+  rpc GetContributionsByRepository(GetContributionsByRepositoryRequest) returns (GetContributionsByRepositoryResponse) {
+    option (google.api.http) = {
+      post: "/v1/contributions/by-repository"
+      body: "*"
+    };
+  }
+
+  // Referential lookups by UID
+  rpc GetContributionsByUid(GetContributionsByUidRequest) returns (GetContributionsByUidResponse) {
+    option (google.api.http) = {
+      get: "/v1/contributions/by-uid/{attestation_uid}"
+    };
+  }
+
+  // Repository registration workflow methods (gRPC only)
+  rpc GenerateRepositoryBranchName(GenerateRepositoryBranchNameRequest) returns (GenerateRepositoryBranchNameResponse);
+  rpc ValidateRepositoryBranch(ValidateRepositoryBranchRequest) returns (ValidateRepositoryBranchResponse);
+}
+
+// Attest Service Messages
+message CreateAttestationRequest {
+  option (openapi_title) = "V1CreateAttestationRequest";
+  string schema_type = 1;                    // e.g., "repository", "identity"
+  map<string, AttestationValue> data = 2;    // Dynamic key-value data matching schema
+  string recipient = 3;                      // Ethereum address (optional, defaults to attester)
+  bool revocable = 4;                        // Whether attestation can be revoked
+  uint64 expiration_time = 5;                // Unix timestamp (0 = no expiration)
+}
+
+message StringArray {
+  repeated string values = 1;
+}
+
+message BytesArray {
+  repeated bytes values = 1;
+}
+
+message AttestationValue {
+  oneof value {
+    string string_value = 1;
+    bytes bytes_value = 2;
+    string address_value = 3;        // Ethereum address as string
+    uint64 uint64_value = 4;
+    bool bool_value = 5;
+    StringArray string_array = 6;
+    BytesArray bytes_array = 7;
+  }
+}
+
+message CreateAttestationResponse {
+  option (openapi_title) = "CreateAttestationResponse";
+  string attestation_uid = 1;       // EAS attestation UID
+  string transaction_hash = 2;      // Blockchain transaction hash
+  string attester = 3;              // Address that created the attestation
+}
+
+message GetSchemasResponse {
+  option (openapi_title) = "GetSchemasResponse";
+  map<string, SchemaDefinition> schemas = 1;
+  repeated SchemaDeployment deployments = 2;
+}
+
+message SchemaDefinition {
+  string name = 1;
+  string definition = 2;      // EAS schema definition string
+  string description = 3;
+}
+
+message SchemaDeployment {
+  string contract_name = 1;
+  string contract_address = 2;    // Schema UID
+}
+
+message GetSchemaRequest {
+  option (openapi_title) = "GetSchemaRequest";
+  string schema_type = 1;
+}
+
+message GetSchemaResponse {
+  option (openapi_title) = "GetSchemaResponse";
+  SchemaDefinition schema = 1;
+  SchemaDeployment deployment = 2;
+}
+
+// Sign Service Messages
+message ServerSignAttestationRequest {
+  option (openapi_title) = "ServerSignAttestationRequest";
+  string schema_type = 1;
+  map<string, AttestationValue> data = 2;
+  string recipient = 3;
+  bool revocable = 4;
+  uint64 expiration_time = 5;
+}
+
+message ServerSignAttestationResponse {
+  option (openapi_title) = "ServerSignAttestationResponse";
+  string attestation_uid = 1;
+  string transaction_hash = 2;
+  string attester = 3;              // Server's address
+}
+
+message SignMessageRequest {
+  option (openapi_title) = "SignMessageRequest";
+  string message = 1;               // Message to sign
+}
+
+message SignMessageResponse {
+  option (openapi_title) = "SignMessageResponse";
+  string signature = 1;             // Hex-encoded signature
+  string signer_address = 2;        // Server's address
+  string message_hash = 3;          // Hash of the signed message
+}
+
+message VerifySignatureRequest {
+  option (openapi_title) = "VerifySignatureRequest";
+  string message = 1;
+  string signature = 2;             // Hex-encoded signature
+  string expected_signer = 3;       // Expected Ethereum address (optional)
+}
+
+message VerifySignatureResponse {
+  option (openapi_title) = "VerifySignatureResponse";
+  bool valid = 1;
+  string signer_address = 2;        // Recovered address
+  string error = 3;                 // Error message if invalid
+}
+
+message GenerateWebhookSecretRequest {
+  option (openapi_title) = "GenerateWebhookSecretRequest";
+  Repository repository = 1;        // Repository (domain + path)
+  bytes registrant_signature = 2;   // Registrant's signature
+}
+
+message GenerateWebhookSecretResponse {
+  option (openapi_title) = "GenerateWebhookSecretResponse";
+  string webhook_secret = 1;        // Generated webhook secret
+  Repository repository = 2;        // Repository (domain + path)
+  string attestor_address = 3;     // Server's attestor address
+}
+
+message VerifyWebhookSignatureRequest {
+  option (openapi_title) = "VerifyWebhookSignatureRequest";
+  string payload = 1;               // Raw webhook payload
+  string signature = 2;            // GitHub webhook signature (sha256=...)
+  string webhook_secret = 3;        // Expected webhook secret
+}
+
+message VerifyWebhookSignatureResponse {
+  option (openapi_title) = "VerifyWebhookSignatureResponse";
+  bool valid = 1;                   // True if signature is valid
+  string error = 2;                 // Error message if invalid
+}
+
+message GetServerAddressResponse {
+  string address = 1;               // Server's Ethereum address
+}
+
+// Contribution Service Messages
+message RegisterRepositoryResponse {
+  option (openapi_title) = "RegisterRepositoryResponse";
+  string attestation_uid = 1;       // EAS attestation UID for the registration
+  string webhook_secret = 2;        // Derived webhook secret for GitHub configuration
+}
+
+message WebhookSecretResponse {
+  option (openapi_title) = "WebhookSecretResponse";
+  string webhook_secret = 1;        // Derived webhook secret for this repository
+  bool registered = 2;             // Whether repository is registered
+}
+
+message ListRepositoriesResponse {
+  repeated Repository repositories = 1;
+}
+
+message RegisterIdentityResponse {
+  option (openapi_title) = "RegisterIdentityResponse";
+  string attestation_uid = 1;
+  string attestation_signature = 2;        // Server's attestation signature
+  string attestor = 3;             // Server's address
+}
+
+message ValidateIdentityRequest {
+  option (openapi_title) = "ValidateIdentityRequest";
+  string identifier = 1;
+  string proof_url = 2;
+  string registrant = 3;
+}
+
+message ValidateIdentityResponse {
+  option (openapi_title) = "ValidateIdentityResponse";
+  bool valid = 1;
+  string attestation_signature = 2;
+  string attestor = 3;
+  string error = 4;
+}
+
+message ListIdentitiesResponse {
+  repeated Identity identities = 1;
+  uint32 total_count = 2;
+}
+
+message ProcessWebhookResponse {
+  option (openapi_title) = "ProcessWebhookResponse";
+  bool processed = 1;
+  string attestation_uid = 2;       // EAS attestation UID if created
+  string error = 3;                // Error message if failed
+}
+
+message GetContributionsRequest {
+  option (openapi_title) = "GetContributionsRequest";
+  Repository repository = 1;                    // Filter by repository (optional)
+  Identity identity = 2;                        // Filter by identity (optional)
+  repeated ContributionEventType event_types = 3; // Filter by event types (optional)
+  uint32 limit = 4;
+  uint32 offset = 5;
+}
+
+message GetContributionsResponse {
+  option (openapi_title) = "GetContributionsResponse";
+  repeated Contribution contributions = 1;
+  uint32 total_count = 2;
+}
+
+// Referential lookup request message
+message GetContributionsByUidRequest {
+  option (openapi_title) = "GetContributionsByUidRequest";
+  bytes attestation_uid = 1;       // UID of the identity or repository attestation
+  uint32 limit = 2;
+  uint32 offset = 3;
+}
+
+
+// Repository registration workflow messages
+message GenerateRepositoryBranchNameRequest {
+  option (openapi_title) = "GenerateRepositoryBranchNameRequest";
+  string domain = 1;               // Git hosting domain (e.g., "github.com", "gitlab.com")
+  string repository_path = 2;      // "owner/repo" format
+  bytes registrant_signature = 3;  // Registrant's signature for deterministic generation
+}
+
+message GenerateRepositoryBranchNameResponse {
+  option (openapi_title) = "GenerateRepositoryBranchNameResponse";
+  string branch_name = 1;          // Generated branch name
+  string domain = 2;               // Echoed domain
+  string repository_path = 3;      // Echoed repository path
+  string expected_message = 4;     // Message that should be in branch (e.g., "github.com/owner/repo")
+  uint64 generated_at = 5;         // Unix timestamp when generated
+}
+
+message ValidateRepositoryBranchRequest {
+  option (openapi_title) = "ValidateRepositoryBranchRequest";
+  string repository_path = 1;      // "owner/repo" format
+  string registrant_address = 2;   // Ethereum address of registrant
+  bytes registrant_signature = 3;  // Registrant's signature
+}
+
+message ValidateRepositoryBranchResponse {
+  option (openapi_title) = "ValidateRepositoryBranchResponse";
+  bool valid = 1;                  // Whether branch exists and is valid
+  string branch_name = 2;          // Expected branch name
+  string branch_sha = 3;           // Git commit SHA if found
+  uint64 verified_at = 4;          // Unix timestamp when verified
+  string error = 5;                // Error message if validation failed
+}
+
+// Missing request messages for lint compliance
+
+// Filter operators for request filtering
+enum FilterOperator {
+  FILTER_OPERATOR_UNSPECIFIED = 0;
+  FILTER_OPERATOR_EQUAL = 1;                    // For strings, bools, addresses
+  FILTER_OPERATOR_GREATER_THAN = 2;             // For uint64 (timestamps, values)
+  FILTER_OPERATOR_LESS_THAN = 3;                // For uint64 (timestamps, values)
+  FILTER_OPERATOR_GREATER_EQUAL = 4;            // For uint64 (timestamps, values)
+  FILTER_OPERATOR_LESS_EQUAL = 5;               // For uint64 (timestamps, values)
+  FILTER_OPERATOR_CONTAINS = 6;                 // For string fields (substring match)
+  FILTER_OPERATOR_IN = 7;                       // Value is in a list
+  FILTER_OPERATOR_EXISTS = 8;                   // Field has a value (not null/empty)
+}
+
+// Generic request filter for flexible querying
+message RequestFilter {
+  string field_name = 1 [(buf.validate.field).string = {
+    min_len: 1,
+    max_len: 50,
+    pattern: "^[a-z_][a-z0-9_]*$"  // Only lowercase fields with underscores
+  }];
+  
+  FilterOperator operator = 2 [(buf.validate.field).enum = {
+    defined_only: true,
+    not_in: [0]  // FILTER_UNSPECIFIED not allowed
+  }];
+  
+  bool negate = 3;              // Apply NOT to the filter result
+  
+  // Value to filter against - use appropriate type based on operator
+  oneof value {
+    string string_value = 10 [(buf.validate.field).string = {
+      max_len: 256  // Reasonable limit for string filters
+    }];
+    uint64 uint64_value = 11;     // For GT/LT/GTE/LTE with timestamps/values  
+    bool bool_value = 12;         // For EQUAL with boolean fields
+  }
+  
+  // Separate field for IN operations (can't use repeated in oneof)
+  repeated string string_list = 13 [(buf.validate.field).repeated = {
+    max_items: 100,
+    items: {
+      string: {
+        min_len: 1,
+        max_len: 256
+      }
+    }
+  }];
+}
+
+// Empty request messages (previously using google.protobuf.Empty)
+message GetSchemasRequest {
+  option (openapi_title) = "GetSchemasRequest";}
+message GetServerAddressRequest {}
+
+message ListRepositoriesRequest {
+  uint32 limit = 1 [(buf.validate.field).uint32 = {
+    lte: 1000,  // Reasonable limit to prevent abuse
+    gte: 1
+  }];
+  uint32 offset = 2;            // Optional: offset for pagination (default: 0)
+  repeated RequestFilter filters = 3 [(buf.validate.field).repeated = {
+    max_items: 10  // Limit complexity of queries
+  }];
+  string order_by = 4 [(buf.validate.field).string = {
+    max_len: 50,
+    pattern: "^[a-z_][a-z0-9_]*$"  // Valid field names only
+  }];
+  bool order_desc = 5;          // Optional: descending order (default: true)
+}
+
+message ListIdentitiesRequest {
+  uint32 limit = 1 [(buf.validate.field).uint32 = {
+    lte: 1000,  // Reasonable limit to prevent abuse
+    gte: 1
+  }];
+  uint32 offset = 2;            // Optional: offset for pagination (default: 0)
+  repeated RequestFilter filters = 3 [(buf.validate.field).repeated = {
+    max_items: 10  // Limit complexity of queries
+  }];
+  string order_by = 4 [(buf.validate.field).string = {
+    max_len: 50,
+    pattern: "^[a-z_][a-z0-9_]*$"  // Valid field names only
+  }];
+  bool order_desc = 5;          // Optional: descending order (default: true)
+}
+
+// Request messages that wrap existing types
+message RegisterRepositoryRequest {
+  option (openapi_title) = "RegisterRepositoryRequest";
+  Repository repository = 1;
+}
+
+message GetWebhookSecretRequest {
+  Repository repository = 1;
+}
+
+message GetWebhookSecretResponse {
+  WebhookSecretResponse response = 1;
+}
+
+message RegisterIdentityRequest {
+  option (openapi_title) = "RegisterIdentityRequest";
+  Identity identity = 1;
+}
+
+message LookupIdentityRequest {
+  option (openapi_title) = "LookupIdentityRequest";
+  // Legacy fields for backward compatibility
+  string domain = 1;                    // Optional: filter by domain (e.g., "github.com")
+  string identifier = 2;               // Optional: lookup by identifier (e.g., username)
+  string registrant = 3;               // Optional: lookup by registrant address
+  bytes identity_uid = 4;              // Optional: lookup by attestation UID
+  
+  // New flexible filtering system
+  repeated RequestFilter filters = 10;  // Additional filters to apply (ANDed together)
+  bool include_revoked = 11;           // Optional: include revoked identities (default: false)
+  bool include_expired = 12;           // Optional: include expired identities (default: false)
+}
+
+message LookupRepositoryRequest {
+  option (openapi_title) = "LookupRepositoryRequest";
+  // Legacy fields for backward compatibility
+  string domain = 1;                    // Optional: filter by domain (e.g., "github.com")
+  string path = 2;                     // Optional: lookup by repository path (e.g., "owner/repo")
+  string registrant = 3;               // Optional: lookup by registrant address
+  bytes repository_uid = 4;            // Optional: lookup by attestation UID
+  
+  // New flexible filtering system
+  repeated RequestFilter filters = 10;  // Additional filters to apply (ANDed together)
+  bool include_revoked = 11;           // Optional: include revoked repositories (default: false)
+  bool include_expired = 12;           // Optional: include expired repositories (default: false)
+}
+
+message LookupRepositoryResponse {
+  option (openapi_title) = "LookupRepositoryResponse";
+  Repository repository = 1;
+  bool found = 2;
+}
+
+
+message ProcessWebhookRequest {
+  option (openapi_title) = "ProcessWebhookRequest";
+  WebhookEvent event = 1;
+}
+
+// Specific query request messages
+message GetContributionsByIdentityRequest {
+  option (openapi_title) = "GetContributionsByIdentityRequest";
+  // Identity lookup options - provide one of the following:
+  Identity identity = 1;                // Full identity object (legacy)
+  string identity_domain = 5;           // Optional: identity domain (e.g., "github.com")
+  string identifier = 6;               // Optional: identity identifier (e.g., username)
+  string registrant = 7;               // Optional: identity registrant address
+  bytes identity_uid = 8;              // Optional: identity attestation UID
+  // Repository filtering options (optional):
+  string repository_domain = 9;        // Optional: filter by repository domain
+  string repository_path = 10;         // Optional: filter by repository path
+  bytes repository_uid = 11;           // Optional: filter by repository attestation UID
+  // Other filtering options:
+  repeated ContributionEventType event_types = 2; // Filter by event types (optional)
+  uint32 limit = 3;
+  uint32 offset = 4;
+}
+
+message GetContributionsByRepositoryRequest {
+  option (openapi_title) = "GetContributionsByRepositoryRequest";
+  // Repository lookup options - provide one of the following:
+  Repository repository = 1;            // Full repository object (legacy)
+  string repository_domain = 5;        // Optional: repository domain (e.g., "github.com")
+  string repository_path = 6;          // Optional: repository path (e.g., "owner/repo")
+  string repository_registrant = 7;    // Optional: repository registrant address
+  bytes repository_uid = 8;            // Optional: repository attestation UID
+  // Identity filtering options (optional):
+  string identity_domain = 9;          // Optional: filter by identity domain
+  string identity_identifier = 10;     // Optional: filter by identity identifier
+  string identity_registrant = 11;     // Optional: filter by identity registrant address
+  bytes identity_uid = 12;             // Optional: filter by identity attestation UID
+  // Other filtering options:
+  repeated ContributionEventType event_types = 2; // Filter by event types (optional)
+  uint32 limit = 3;
+  uint32 offset = 4;
+}
+
+// Response messages
+message GetContributionsByIdentityResponse {
+  option (openapi_title) = "GetContributionsByIdentityResponse";
+  repeated Contribution contributions = 1;
+  uint32 total_count = 2;
+}
+
+message GetContributionsByRepositoryResponse {
+  option (openapi_title) = "GetContributionsByRepositoryResponse";
+  repeated Contribution contributions = 1;
+  uint32 total_count = 2;
+}
+
+message GetContributionsByUidResponse {
+  option (openapi_title) = "GetContributionsByUidResponse";
+  repeated Contribution contributions = 1;
+  uint32 total_count = 2;
+}
+
+// Lookup response message
+message LookupIdentityResponse {
+  option (openapi_title) = "LookupIdentityResponse";
+  Identity identity = 1;
+  bool found = 2;
+}
