@@ -1,0 +1,42 @@
+version: v2
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/cyberstorm-dev/schemas
+inputs:
+  - directory: schemas
+plugins:
+  # Go
+  - remote: buf.build/protocolbuffers/go
+    out: dist/go
+    opt: 
+      - paths=source_relative
+    include_imports: true
+  - remote: buf.build/grpc/go
+    out: dist/go
+    opt:
+      - paths=source_relative
+      - require_unimplemented_servers=false
+    include_imports: true
+  # Python
+  - remote: buf.build/protocolbuffers/python
+    out: dist/python
+    include_imports: true
+  - remote: buf.build/grpc/python
+    out: dist/python
+    include_imports: true
+  # TypeScript
+  - remote: buf.build/connectrpc/es
+    out: dist/typescript
+    opt:
+      - target=ts
+    include_imports: true
+  # OpenAPI
+  - remote: buf.build/grpc-ecosystem/openapiv2
+    out: dist/openapi
+    opt:
+      - logtostderr=true
+      - allow_merge=true
+      - merge_file_name=api
+    include_imports: true
