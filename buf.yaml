@@ -1,3 +1,4 @@
 version: v2
 modules:
-  - path: schemas/attestor/v1
+  - path: cyberstorm/attestor/v1
+  - path: cyberstorm/crypto/v1

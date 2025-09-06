@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+package cyberstorm.crypto.v1;
+
+import "buf/validate/validate.proto";
+
+option go_package = "github.com/cyberstorm-dev/schemas/go/cyberstorm/crypto/v1;cryptov1";
+
+// Hash represents a cryptographic hash with its algorithm
+message Hash {
+  // Hash algorithm (e.g., "sha256", "sha3-256", "keccak256")  
+  string algorithm = 1 [(buf.validate.field).string = {
+    min_len: 1,
+    max_len: 50,
+    pattern: "^[a-z0-9-]+$"
+  }];
+  
+  // Hash value as hex string
+  string value = 2 [(buf.validate.field).string = {
+    min_len: 1,
+    max_len: 128,
+    pattern: "^[a-fA-F0-9]+$"
+  }];
+}
+
+// Signature represents a cryptographic signature
+message Signature {
+  // Signature algorithm (e.g., "ecdsa", "ed25519")
+  string algorithm = 1 [(buf.validate.field).string = {
+    min_len: 1,
+    max_len: 50,
+    pattern: "^[a-z0-9-]+$"
+  }];
+  
+  // Signature value as hex string
+  string value = 2 [(buf.validate.field).string = {
+    min_len: 1,
+    max_len: 256,
+    pattern: "^[a-fA-F0-9]+$"
+  }];
+  
+  // Public key used for signature verification (optional)
+  string public_key = 3 [(buf.validate.field).string = {
+    max_len: 256,
+    pattern: "^[a-fA-F0-9]*$"
+  }];
+}
+
+// EthereumAddress represents an Ethereum address
+message EthereumAddress {
+  // Ethereum address as hex string (40 characters, optionally prefixed with 0x)
+  string address = 1 [(buf.validate.field).string = {
+    min_len: 40,
+    max_len: 42,
+    pattern: "^(0x)?[a-fA-F0-9]{40}$"
+  }];
+}
+
+// Transaction hash for blockchain transactions
+message TransactionHash {
+  // Blockchain network (e.g., "ethereum", "polygon")
+  string network = 1 [(buf.validate.field).string = {
+    min_len: 1,
+    max_len: 50,
+    pattern: "^[a-z0-9-]+$"
+  }];
+  
+  // Transaction hash as hex string
+  string hash = 2 [(buf.validate.field).string = {
+    min_len: 1,
+    max_len: 128,
+    pattern: "^(0x)?[a-fA-F0-9]+$"
+  }];
+}
+
+// Merkle proof for verifying inclusion in a Merkle tree
+message MerkleProof {
+  // Leaf value being proven
+  Hash leaf = 1 [(buf.validate.field).required = true];
+  
+  // Merkle root
+  Hash root = 2 [(buf.validate.field).required = true];
+  
+  // Proof path (array of hashes)
+  repeated Hash proof = 3 [(buf.validate.field).repeated.min_items = 1];
+  
+  // Leaf index in the tree
+  uint64 index = 4;
+}
