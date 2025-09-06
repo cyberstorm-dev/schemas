@@ -1,7 +1,7 @@
 version: '3'
 
 vars:
-  SCHEMAS_DIR: schemas
+  SCHEMAS_DIR: cyberstorm
   DIST_DIR: dist
 
 tasks:
