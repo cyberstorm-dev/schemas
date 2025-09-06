@@ -34,6 +34,7 @@ tasks:
     deps: [install]
     cmds:
       - cd {{.SCHEMAS_DIR}}/attestor/v1 && buf dep update
+      - cd {{.SCHEMAS_DIR}}/crypto/v1 && buf dep update
 
   lint:
     desc: Lint proto files
@@ -60,6 +61,7 @@ tasks:
     cmds:
       - mkdir -p {{.DIST_DIR}}/typescript logs
       - buf generate --template buf.gen.yaml {{.SCHEMAS_DIR}}/attestor/v1 >logs/buf-typescript-attestor.log 2>&1
+      - buf generate --template buf.gen.yaml {{.SCHEMAS_DIR}}/crypto/v1 >logs/buf-typescript-crypto.log 2>&1
       - echo "JavaScript files generated in {{.DIST_DIR}}/typescript/"
 
   generate:python:
@@ -68,6 +70,7 @@ tasks:
     cmds:
       - mkdir -p {{.DIST_DIR}}/python logs
       - buf generate --template buf.gen.yaml {{.SCHEMAS_DIR}}/attestor/v1 >logs/buf-python-attestor.log 2>&1
+      - buf generate --template buf.gen.yaml {{.SCHEMAS_DIR}}/crypto/v1 >logs/buf-python-crypto.log 2>&1
       - echo "Python files generated in {{.DIST_DIR}}/python/"
 
   generate:go:
@@ -76,6 +79,7 @@ tasks:
     cmds:
       - mkdir -p {{.DIST_DIR}}/go logs
       - buf generate --template buf.gen.yaml {{.SCHEMAS_DIR}}/attestor/v1 >logs/buf-go-attestor.log 2>&1
+      - buf generate --template buf.gen.yaml {{.SCHEMAS_DIR}}/crypto/v1 >logs/buf-go-crypto.log 2>&1
       - cp templates/go.mod.template {{.DIST_DIR}}/go/go.mod
       - |
         if [ ! -f "{{.DIST_DIR}}/go/go.mod" ]; then
@@ -91,6 +95,7 @@ tasks:
     cmds:
       - mkdir -p {{.DIST_DIR}}/openapi {{.DIST_DIR}}/docs logs
       - buf generate --template buf.gen.yaml {{.SCHEMAS_DIR}}/attestor/v1 >logs/buf-openapi-attestor.log 2>&1
+      - buf generate --template buf.gen.yaml {{.SCHEMAS_DIR}}/crypto/v1 >logs/buf-openapi-crypto.log 2>&1
       - ./scripts/convert-swagger-to-openapi.sh
       - echo "Swagger 2.0 and OpenAPI 3.0 files generated in {{.DIST_DIR}}/openapi/"
 
