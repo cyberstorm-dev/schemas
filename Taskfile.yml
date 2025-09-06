@@ -232,3 +232,84 @@ tasks:
     cmds:
       - echo "Usage - ./scripts/publish-go.sh <version> --test"
       - echo "Example - ./scripts/publish-go.sh v1.0.0 --test"
+
+  # Buf Schema Registry (BSR) tasks
+  buf:format:
+    desc: Format protobuf files using buf
+    deps: [install]
+    cmds:
+      - echo "🎨 Formatting protobuf files..."
+      - cd {{.SCHEMAS_DIR}}/attestor/v1 && buf format --write
+      - cd {{.SCHEMAS_DIR}}/crypto/v1 && buf format --write
+      - echo "✅ Protobuf files formatted"
+
+  buf:lint:
+    desc: Lint protobuf files using buf
+    deps: [deps]
+    cmds:
+      - echo "🔍 Linting protobuf files..."
+      - cd {{.SCHEMAS_DIR}}/attestor/v1 && buf lint
+      - cd {{.SCHEMAS_DIR}}/crypto/v1 && buf lint
+      - echo "✅ Protobuf files passed lint checks"
+
+  buf:build:
+    desc: Build protobuf files using buf
+    deps: [buf:lint]
+    cmds:
+      - echo "🔨 Building protobuf files..."
+      - cd {{.SCHEMAS_DIR}}/attestor/v1 && buf build
+      - cd {{.SCHEMAS_DIR}}/crypto/v1 && buf build
+      - echo "✅ Protobuf build successful"
+
+  buf:breaking:attestor:
+    desc: Check attestor module for breaking changes against main
+    deps: [install]
+    cmds:
+      - echo "🔍 Checking attestor for breaking changes..."
+      - buf breaking {{.SCHEMAS_DIR}}/attestor/v1 --against '.git#branch=main,subdir={{.SCHEMAS_DIR}}/attestor/v1'
+      - echo "✅ No breaking changes detected in attestor module"
+
+  buf:breaking:crypto:
+    desc: Check crypto module for breaking changes against main
+    deps: [install]
+    cmds:
+      - echo "🔍 Checking crypto for breaking changes..."
+      - buf breaking {{.SCHEMAS_DIR}}/crypto/v1 --against '.git#branch=main,subdir={{.SCHEMAS_DIR}}/crypto/v1'
+      - echo "✅ No breaking changes detected in crypto module"
+
+  buf:breaking:
+    desc: Check all modules for breaking changes
+    cmds:
+      - task: buf:breaking:attestor
+      - task: buf:breaking:crypto
+
+  buf:push:attestor:
+    desc: Push attestor module to Buf Schema Registry
+    deps: [install, buf:build]
+    cmds:
+      - echo "📤 Pushing attestor module to buf.build/cyberstorm/cyberstorm-schemas..."
+      - cd {{.SCHEMAS_DIR}}/attestor/v1 && buf push
+      - echo "✅ Successfully pushed attestor to BSR"
+
+  buf:push:crypto:
+    desc: Push crypto module to Buf Schema Registry  
+    deps: [install, buf:build]
+    cmds:
+      - echo "📤 Pushing crypto module to buf.build/cyberstorm/cyberstorm-schemas..."
+      - cd {{.SCHEMAS_DIR}}/crypto/v1 && buf push
+      - echo "✅ Successfully pushed crypto to BSR"
+
+  buf:push:
+    desc: Push all modules to Buf Schema Registry (cyberstorm-schemas)
+    cmds:
+      - task: buf:push:attestor
+      - task: buf:push:crypto
+
+  buf:push:draft:
+    desc: Push all modules to BSR with draft label
+    deps: [install, buf:build]
+    cmds:
+      - echo "📤 Pushing all modules to buf.build/cyberstorm/cyberstorm-schemas with draft label..."
+      - cd {{.SCHEMAS_DIR}}/attestor/v1 && buf push --label draft
+      - cd {{.SCHEMAS_DIR}}/crypto/v1 && buf push --label draft
+      - echo "✅ Successfully pushed all modules to BSR with draft label"

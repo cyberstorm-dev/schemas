@@ -1,5 +1,5 @@
 version: v2
-name: buf.build/cyberstorm/crypto
+name: buf.build/cyberstorm/cyberstorm-schemas
 deps:
   - buf.build/bufbuild/protovalidate
 lint:
