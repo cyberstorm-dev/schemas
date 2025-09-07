@@ -47,4 +47,26 @@ except ImportError as e:
     sys.exit(1)
 "
 
+# Test namespace cleanup - ensure buf.validate is under cyberstorm namespace
+echo "📝 Testing namespace cleanup..."
+$PYTHON_CMD -c "
+import sys
+sys.path.append('dist/python')
+try:
+    from cyberstorm.buf.validate import validate_pb2
+    print('✅ cyberstorm.buf.validate import successful')
+except ImportError as e:
+    print('❌ cyberstorm.buf.validate import failed:', e)
+    sys.exit(1)
+
+# Verify buf namespace is NOT at top level in our package
+import os
+dist_python_path = 'dist/python'
+if os.path.exists(os.path.join(dist_python_path, 'buf')):
+    print('❌ Top-level buf namespace found - namespace pollution!')
+    sys.exit(1)
+else:
+    print('✅ No top-level buf namespace - clean package')
+"
+
 echo "✅ Python package validation complete"

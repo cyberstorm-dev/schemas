@@ -1,7 +1,10 @@
 name: Deploy Documentation to GitHub Pages
 
 on:
-  workflow_dispatch:  # Manual trigger only
+  workflow_dispatch:  # Manual trigger
+  push:
+    tags:
+      - '*'
 
 permissions:
   contents: read
