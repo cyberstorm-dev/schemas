@@ -1,0 +1,18 @@
+{
+  "generated": "2025-09-01T00:00:00.000Z",
+  "note": "Manually extracted from schemas/proto/cyberstorm/attestor/v1/messages.proto",
+  "schemas": {
+    "Identity": {
+      "definition": "string domain,string identifier,address registrant,string proof_url,address attestor,bytes registrant_signature,bytes attestor_signature",
+      "description": "Identity registry - links domain identifier to Ethereum address"
+    },
+    "Repository": {
+      "definition": "string domain,string path,address registrant,string proof_url,address attestor,bytes registrant_signature,bytes attestor_signature",
+      "description": "Repository for EAS attestation (stored on-chain)"
+    },
+    "Contribution": {
+      "definition": "bytes32 identity_uid,bytes32 repository_uid,string event_type,string url,bytes32[] linked_contribution_uids",
+      "description": "Contribution event attestation linking to identity and repository"
+    }
+  }
+}
