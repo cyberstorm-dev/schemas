@@ -1,6 +1,6 @@
 version: v2
-name: buf.build/cyberstorm/cyberstorm-schemas
+name: buf.build/cyberstorm/attestor
 deps:
   - buf.build/googleapis/googleapis
   - buf.build/bufbuild/protovalidate
-  - buf.build/cyberstorm/eas-schemas
+  - buf.build/cyberstorm/eas

@@ -287,7 +287,7 @@ tasks:
     desc: Push attestor module to Buf Schema Registry
     deps: [install, buf:build]
     cmds:
-      - echo "📤 Pushing attestor module to buf.build/cyberstorm/cyberstorm-schemas..."
+      - echo "📤 Pushing attestor module to buf.build/cyberstorm/attestor..."
       - cd {{.SCHEMAS_DIR}}/attestor/v1 && buf push
       - echo "✅ Successfully pushed attestor to BSR"
 
@@ -295,12 +295,12 @@ tasks:
     desc: Push crypto module to Buf Schema Registry  
     deps: [install, buf:build]
     cmds:
-      - echo "📤 Pushing crypto module to buf.build/cyberstorm/cyberstorm-schemas..."
+      - echo "📤 Pushing crypto module to buf.build/cyberstorm/crypto..."
       - cd {{.SCHEMAS_DIR}}/crypto/v1 && buf push
       - echo "✅ Successfully pushed crypto to BSR"
 
   buf:push:
-    desc: Push all modules to Buf Schema Registry (cyberstorm-schemas)
+    desc: Push all modules to their respective BSR repositories
     cmds:
       - task: buf:push:attestor
       - task: buf:push:crypto
@@ -309,7 +309,16 @@ tasks:
     desc: Push all modules to BSR with draft label
     deps: [install, buf:build]
     cmds:
-      - echo "📤 Pushing all modules to buf.build/cyberstorm/cyberstorm-schemas with draft label..."
+      - echo "📤 Pushing modules to buf.build/cyberstorm/attestor and crypto with draft label..."
       - cd {{.SCHEMAS_DIR}}/attestor/v1 && buf push --label draft
       - cd {{.SCHEMAS_DIR}}/crypto/v1 && buf push --label draft
       - echo "✅ Successfully pushed all modules to BSR with draft label"
+
+  buf:push:create:
+    desc: Create BSR repositories and push all modules (first time only)
+    deps: [install, buf:build]
+    cmds:
+      - echo "📤 Creating buf.build/cyberstorm/attestor and crypto repositories..."
+      - cd {{.SCHEMAS_DIR}}/attestor/v1 && buf push --create
+      - cd {{.SCHEMAS_DIR}}/crypto/v1 && buf push --create
+      - echo "✅ Successfully created BSR repositories and pushed all modules"

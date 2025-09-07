@@ -6,84 +6,66 @@ import "buf/validate/validate.proto";
 
 option go_package = "github.com/cyberstorm-dev/schemas/go/cyberstorm/crypto/v1;cryptov1";
 
-// Hash represents a cryptographic hash with its algorithm
-message Hash {
-  // Hash algorithm (e.g., "sha256", "sha3-256", "keccak256")  
-  string algorithm = 1 [(buf.validate.field).string = {
-    min_len: 1,
-    max_len: 50,
-    pattern: "^[a-z0-9-]+$"
-  }];
-  
-  // Hash value as hex string
-  string value = 2 [(buf.validate.field).string = {
-    min_len: 1,
-    max_len: 128,
-    pattern: "^[a-fA-F0-9]+$"
+// IPLD Content Identifier - self-describing, no URI needed
+message CID {
+  // CID as string (e.g., "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi")
+  string cid = 1 [(buf.validate.field).string = {
+    min_len: 46,
+    max_len: 100,
+    pattern: "^(Qm[1-9A-HJ-NP-Za-km-z]{44}|b[A-Za-z2-7]{58,})$"
   }];
 }
 
-// Signature represents a cryptographic signature
-message Signature {
-  // Signature algorithm (e.g., "ecdsa", "ed25519")
-  string algorithm = 1 [(buf.validate.field).string = {
-    min_len: 1,
-    max_len: 50,
-    pattern: "^[a-z0-9-]+$"
+// Encryption type
+enum EncryptionType {
+  ENCRYPTION_TYPE_UNSPECIFIED = 0;
+  ENCRYPTION_TYPE_NONE = 1;              // No encryption
+  ENCRYPTION_TYPE_CHACHA20_POLY1305 = 2; // ChaCha20-Poly1305 (modern standard)
+  ENCRYPTION_TYPE_AES_256_GCM = 3;       // AES-256-GCM (legacy/compatibility)
+}
+
+// Content Encryption Key
+message ContentEncryptionKey {
+  EncryptionType type = 1 [(buf.validate.field).enum = {
+    defined_only: true
   }];
   
-  // Signature value as hex string
-  string value = 2 [(buf.validate.field).string = {
-    min_len: 1,
-    max_len: 256,
-    pattern: "^[a-fA-F0-9]+$"
-  }];
-  
-  // Public key used for signature verification (optional)
-  string public_key = 3 [(buf.validate.field).string = {
-    max_len: 256,
-    pattern: "^[a-fA-F0-9]*$"
+  // Empty if type is NONE, otherwise encrypted CEK
+  bytes encrypted_key = 2 [(buf.validate.field).bytes = {
+    max_len: 256
   }];
 }
 
-// EthereumAddress represents an Ethereum address
-message EthereumAddress {
-  // Ethereum address as hex string (40 characters, optionally prefixed with 0x)
-  string address = 1 [(buf.validate.field).string = {
-    min_len: 40,
-    max_len: 42,
-    pattern: "^(0x)?[a-fA-F0-9]{40}$"
+// Group Encryption Key  
+message GroupEncryptionKey {
+  EncryptionType type = 1 [(buf.validate.field).enum = {
+    defined_only: true
+  }];
+  
+  // Empty if type is NONE, otherwise encrypted group key
+  bytes encrypted_key = 2 [(buf.validate.field).bytes = {
+    max_len: 256
+  }];
+  
+  // Group identifier
+  string group_id = 3 [(buf.validate.field).string = {
+    min_len: 1,
+    max_len: 64,
+    pattern: "^[a-zA-Z0-9_-]+$"
   }];
 }
 
-// Transaction hash for blockchain transactions
-message TransactionHash {
-  // Blockchain network (e.g., "ethereum", "polygon")
-  string network = 1 [(buf.validate.field).string = {
-    min_len: 1,
-    max_len: 50,
-    pattern: "^[a-z0-9-]+$"
-  }];
-  
-  // Transaction hash as hex string
-  string hash = 2 [(buf.validate.field).string = {
-    min_len: 1,
-    max_len: 128,
-    pattern: "^(0x)?[a-fA-F0-9]+$"
-  }];
+// Type of reference relationship (simplified)
+enum ReferenceType {
+  REFERENCE_TYPE_UNSPECIFIED = 0;
 }
 
-// Merkle proof for verifying inclusion in a Merkle tree
-message MerkleProof {
-  // Leaf value being proven
-  Hash leaf = 1 [(buf.validate.field).required = true];
+// Context reference for building content graph
+message ContextReference {
+  // CID of referenced content
+  CID target_cid = 1 [(buf.validate.field).required = true];
   
-  // Merkle root
-  Hash root = 2 [(buf.validate.field).required = true];
-  
-  // Proof path (array of hashes)
-  repeated Hash proof = 3 [(buf.validate.field).repeated.min_items = 1];
-  
-  // Leaf index in the tree
-  uint64 index = 4;
+  ReferenceType reference_type = 2 [(buf.validate.field).enum = {
+    defined_only: true
+  }];
 }
