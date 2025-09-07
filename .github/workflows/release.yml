@@ -65,9 +65,9 @@ jobs:
         cd dist
         
         # Create archives for each language
-        tar -czf ../cyberstorm-attestor-schemas-typescript-${{ inputs.version }}.tar.gz typescript/
-        tar -czf ../cyberstorm-attestor-schemas-go-${{ inputs.version }}.tar.gz go/
-        tar -czf ../cyberstorm-attestor-schemas-openapi-${{ inputs.version }}.tar.gz openapi/
+        tar -czf ../cyberstorm-schemas-typescript-${{ inputs.version }}.tar.gz typescript/
+        tar -czf ../cyberstorm-schemas-go-${{ inputs.version }}.tar.gz go/
+        tar -czf ../cyberstorm-schemas-openapi-${{ inputs.version }}.tar.gz openapi/cyberstorm/
         
         # Copy Python distribution files using actual generated names
         # The build process creates files like: cyberstorm_attestor_schemas-1.0.0-py3-none-any.whl
@@ -108,9 +108,9 @@ jobs:
         prerelease: ${{ inputs.prerelease }}
         generate_release_notes: true
         files: |
-          cyberstorm-attestor-schemas-typescript-${{ inputs.version }}.tar.gz
-          cyberstorm-attestor-schemas-go-${{ inputs.version }}.tar.gz
-          cyberstorm-attestor-schemas-openapi-${{ inputs.version }}.tar.gz
+          cyberstorm-schemas-typescript-${{ inputs.version }}.tar.gz
+          cyberstorm-schemas-go-${{ inputs.version }}.tar.gz
+          cyberstorm-schemas-openapi-${{ inputs.version }}.tar.gz
           cyberstorm_attestor_schemas-${{ steps.version.outputs.clean }}-py3-none-any.whl
           cyberstorm_attestor_schemas-${{ steps.version.outputs.clean }}.tar.gz
         body: |
@@ -120,10 +120,10 @@ jobs:
           
           ### 📦 Available Packages
           
-          - **TypeScript/JavaScript**: `cyberstorm-attestor-schemas-typescript-${{ inputs.version }}.tar.gz`
+          - **TypeScript/JavaScript**: `cyberstorm-schemas-typescript-${{ inputs.version }}.tar.gz`
           - **Python**: `cyberstorm_attestor_schemas-${{ steps.version.outputs.clean }}-py3-none-any.whl` (wheel) and `cyberstorm_attestor_schemas-${{ steps.version.outputs.clean }}.tar.gz` (source)
-          - **Go**: `cyberstorm-attestor-schemas-go-${{ inputs.version }}.tar.gz`
-          - **OpenAPI**: `cyberstorm-attestor-schemas-openapi-${{ inputs.version }}.tar.gz`
+          - **Go**: `cyberstorm-schemas-go-${{ inputs.version }}.tar.gz`
+          - **OpenAPI**: `cyberstorm-schemas-openapi-${{ inputs.version }}.tar.gz`
           
           ### 🚀 Usage
           

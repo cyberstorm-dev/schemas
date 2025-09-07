@@ -98,10 +98,10 @@ tasks:
     desc: Generate clients for all languages
     deps: [lint, clean]
     cmds:
+      - task: generate:openapi
       - task: generate:typescript
       - task: generate:python  
       - task: generate:go
-      - task: generate:openapi
 
   build:
     desc: Full build - lint, format, and generate all clients
@@ -152,10 +152,10 @@ tasks:
     desc: Run all generation checks
     deps: [clean, install]
     cmds:
+      - task: check:openapi
       - task: check:typescript
       - task: check:python
       # - task: check:go  # Temporarily disabled due to GitHub Actions environment issues
-      # - task: check:openapi  # Also temporarily disabled - same underlying crypto generation issue
       - echo "🎉 All generation checks passed!"
 
 
