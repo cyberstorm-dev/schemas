@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package cyberstorm.crypto.v1;
+
+import "buf/validate/validate.proto";
+
+option go_package = "github.com/cyberstorm-dev/schemas/go/cyberstorm/crypto/v1;cryptov1";
+
+// IPLD Content Identifier - self-describing, no URI needed
+message CID {
+  // CID as string (e.g., "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi")
+  string cid = 1 [(buf.validate.field).string = {
+    min_len: 46,
+    max_len: 100,
+    pattern: "^(Qm[1-9A-HJ-NP-Za-km-z]{44}|b[A-Za-z2-7]{58,})$"
+  }];
+}
+
+// Encryption type
+enum EncryptionType {
+  ENCRYPTION_TYPE_UNSPECIFIED = 0;
+  ENCRYPTION_TYPE_NONE = 1;              // No encryption
+  ENCRYPTION_TYPE_CHACHA20_POLY1305 = 2; // ChaCha20-Poly1305 (modern standard)
+  ENCRYPTION_TYPE_AES_256_GCM = 3;       // AES-256-GCM (legacy/compatibility)
+}
+
+// Content Encryption Key
+message ContentEncryptionKey {
+  EncryptionType type = 1 [(buf.validate.field).enum = {
+    defined_only: true
+  }];
+  
+  // Empty if type is NONE, otherwise encrypted CEK
+  bytes encrypted_key = 2 [(buf.validate.field).bytes = {
+    max_len: 256
+  }];
+}
+
+// Group Encryption Key  
+message GroupEncryptionKey {
+  EncryptionType type = 1 [(buf.validate.field).enum = {
+    defined_only: true
+  }];
+  
+  // Empty if type is NONE, otherwise encrypted group key
+  bytes encrypted_key = 2 [(buf.validate.field).bytes = {
+    max_len: 256
+  }];
+  
+  // Group identifier
+  string group_id = 3 [(buf.validate.field).string = {
+    min_len: 1,
+    max_len: 64,
+    pattern: "^[a-zA-Z0-9_-]+$"
+  }];
+}
+
+// Type of reference relationship (simplified)
+enum ReferenceType {
+  REFERENCE_TYPE_UNSPECIFIED = 0;
+}
+
+// Context reference for building content graph
+message ContextReference {
+  // CID of referenced content
+  CID target_cid = 1 [(buf.validate.field).required = true];
+  
+  ReferenceType reference_type = 2 [(buf.validate.field).enum = {
+    defined_only: true
+  }];
+}
