@@ -111,8 +111,8 @@ jobs:
           cyberstorm-schemas-typescript-${{ inputs.version }}.tar.gz
           cyberstorm-schemas-go-${{ inputs.version }}.tar.gz
           cyberstorm-schemas-openapi-${{ inputs.version }}.tar.gz
-          cyberstorm_attestor_schemas-${{ steps.version.outputs.clean }}-py3-none-any.whl
-          cyberstorm_attestor_schemas-${{ steps.version.outputs.clean }}.tar.gz
+          cyberstorm_schemas-${{ steps.version.outputs.clean }}-py3-none-any.whl
+          cyberstorm_schemas-${{ steps.version.outputs.clean }}.tar.gz
         body: |
           ## Release ${{ inputs.version }}
           
@@ -121,7 +121,7 @@ jobs:
           ### 📦 Available Packages
           
           - **TypeScript/JavaScript**: `cyberstorm-schemas-typescript-${{ inputs.version }}.tar.gz`
-          - **Python**: `cyberstorm_attestor_schemas-${{ steps.version.outputs.clean }}-py3-none-any.whl` (wheel) and `cyberstorm_attestor_schemas-${{ steps.version.outputs.clean }}.tar.gz` (source)
+          - **Python**: `cyberstorm_schemas-${{ steps.version.outputs.clean }}-py3-none-any.whl` (wheel) and `cyberstorm_schemas-${{ steps.version.outputs.clean }}.tar.gz` (source)
           - **Go**: `cyberstorm-schemas-go-${{ inputs.version }}.tar.gz`
           - **OpenAPI**: `cyberstorm-schemas-openapi-${{ inputs.version }}.tar.gz`
           
@@ -129,12 +129,12 @@ jobs:
           
           **TypeScript/JavaScript**:
           ```bash
-          npm install ./cyberstorm-attestor-schemas-typescript-${{ inputs.version }}.tar.gz
+          npm install ./cyberstorm-schemas-typescript-${{ inputs.version }}.tar.gz
           ```
           
           **Python**:
           ```bash
-          pip install ./cyberstorm_attestor_schemas-${{ steps.version.outputs.clean }}-py3-none-any.whl
+          pip install ./cyberstorm_schemas-${{ steps.version.outputs.clean }}-py3-none-any.whl
           ```
           
           **Go**:
