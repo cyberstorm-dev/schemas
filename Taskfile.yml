@@ -71,6 +71,7 @@ tasks:
       - mkdir -p {{.DIST_DIR}}/python logs
       - buf generate --template buf.gen.yaml {{.SCHEMAS_DIR}}/attestor/v1 >logs/buf-python-attestor.log 2>&1
       - buf generate --template buf.gen.yaml {{.SCHEMAS_DIR}}/crypto/v1 >logs/buf-python-crypto.log 2>&1
+      - python3 scripts/fix-python-namespace.py
       - echo "Python files generated in {{.DIST_DIR}}/python/"
 
   generate:go:
@@ -178,8 +179,9 @@ tasks:
 
   package:python:
     desc: Package Python for PyPI distribution
-    deps: [generate:python, install:python]
+    deps: [generate:python]
     cmds:
+      - ./scripts/install-python.sh
       - ./scripts/build-python.sh
 
   package:go:

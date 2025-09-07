@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cyberstorm-schemas"
-version = "1.0.2"
+version = "1.0.3"
 description = "Protocol Buffer schemas and generated clients for Cyberstorm services"
 readme = "README.md"
 license = "MIT"
@@ -49,7 +49,7 @@ Repository = "https://github.com/cyberstorm-dev/schemas.git"
 Issues = "https://github.com/cyberstorm-dev/schemas/issues"
 
 [tool.setuptools]
-packages = ["cyberstorm", "cyberstorm.attestor", "cyberstorm.attestor.v1"]
+packages = ["cyberstorm", "cyberstorm.attestor", "cyberstorm.attestor.v1", "cyberstorm.crypto", "cyberstorm.crypto.v1", "cyberstorm.buf", "cyberstorm.buf.validate"]
 
 [tool.setuptools.package-dir]
 "" = "dist/python"
