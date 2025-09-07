@@ -5,7 +5,7 @@ managed:
     - file_option: go_package_prefix
       value: github.com/cyberstorm-dev/schemas
 inputs:
-  - directory: schemas
+  - module: buf.build/bufbuild/protovalidate
 plugins:
   # Go
   - remote: buf.build/protocolbuffers/go
