@@ -10,8 +10,8 @@ def validate_openapi_files():
     """Validate all OpenAPI 3.0 JSON files."""
     print("📋 Validating OpenAPI 3.0 files...")
     
-    pattern = "dist/openapi/*.openapi.json"
-    openapi_files = glob.glob(pattern)
+    pattern = "dist/openapi/**/*.openapi.json"
+    openapi_files = glob.glob(pattern, recursive=True)
     
     if not openapi_files:
         print(f"  ❌ No OpenAPI files found matching: {pattern}")

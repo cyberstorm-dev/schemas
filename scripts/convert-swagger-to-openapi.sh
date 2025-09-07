@@ -5,7 +5,7 @@ set -e
 echo "Converting Swagger 2.0 to OpenAPI 3.0..."
 
 # Convert all swagger files using npx (uses locally installed version)
-for swagger_file in dist/openapi/*.swagger.json; do
+for swagger_file in $(find dist/openapi -name "*.swagger.json" -type f); do
     if [ -f "$swagger_file" ]; then
         openapi_file="${swagger_file%.swagger.json}.openapi.json"
         echo "Converting $(basename "$swagger_file") -> $(basename "$openapi_file")..."
@@ -18,7 +18,7 @@ done
 
 # Add server configurations to the OpenAPI specs
 echo "Adding server configurations..."
-for openapi_file in dist/openapi/*.openapi.json; do
+for openapi_file in $(find dist/openapi -name "*.openapi.json" -type f); do
     if [ -f "$openapi_file" ]; then
         echo "Adding servers to $(basename "$openapi_file")..."
         # Use jq to add servers array after the info section

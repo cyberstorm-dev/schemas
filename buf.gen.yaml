@@ -37,6 +37,4 @@ plugins:
     out: dist/openapi
     opt:
       - logtostderr=true
-      - allow_merge=true
-      - merge_file_name=api
     include_imports: true

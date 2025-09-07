@@ -10,8 +10,8 @@ def validate_swagger_files():
     """Validate all Swagger 2.0 JSON files."""
     print("📋 Validating Swagger 2.0 files...")
     
-    pattern = "dist/openapi/*.swagger.json"
-    swagger_files = glob.glob(pattern)
+    pattern = "dist/openapi/**/*.swagger.json"
+    swagger_files = glob.glob(pattern, recursive=True)
     
     if not swagger_files:
         print(f"  ❌ No Swagger files found matching: {pattern}")
