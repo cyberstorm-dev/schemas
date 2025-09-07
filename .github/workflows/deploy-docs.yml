@@ -1,0 +1,65 @@
+name: Deploy Documentation to GitHub Pages
+
+on:
+  workflow_dispatch:  # Manual trigger only
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm install
+      
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+      
+      - name: Install Task
+        uses: arduino/setup-task@v1
+        with:
+          version: 3.x
+      
+      - name: Generate OpenAPI documentation
+        run: task generate:openapi
+      
+      - name: Build documentation site
+        run: |
+          mkdir -p dist/docs
+          cp templates/swagger-ui.html dist/docs/index.html
+          # Copy OpenAPI files to be accessible
+          cp -r dist/openapi dist/docs/
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist/docs'
+      
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

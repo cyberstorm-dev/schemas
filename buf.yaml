@@ -1,0 +1,4 @@
+version: v2
+modules:
+  - path: cyberstorm/attestor/v1
+  - path: cyberstorm/crypto/v1

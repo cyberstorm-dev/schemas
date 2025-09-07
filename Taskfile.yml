@@ -1,0 +1,324 @@
+version: '3'
+
+vars:
+  SCHEMAS_DIR: cyberstorm
+  DIST_DIR: dist
+
+tasks:
+  default:
+    desc: Show available tasks
+    silent: true
+    cmds:
+      - task --list
+
+  validate:
+    desc: Full validation pipeline - lint, generate, package, and check all targets
+    deps: [deps, lint]
+    cmds:
+      - task: check:all
+
+  clean:
+    desc: Clean generated files
+    cmds:
+      - rm -rf {{.DIST_DIR}}
+      - mkdir -p {{.DIST_DIR}}/typescript {{.DIST_DIR}}/python {{.DIST_DIR}}/go {{.DIST_DIR}}/openapi {{.DIST_DIR}}/docs
+      - mkdir -p logs
+
+  install:
+    desc: Install buf CLI if not present
+    cmds:
+      - ./scripts/install-buf.sh
+
+  deps:
+    desc: Update proto dependencies
+    deps: [install]
+    cmds:
+      - cd {{.SCHEMAS_DIR}}/attestor/v1 && buf dep update
+      - cd {{.SCHEMAS_DIR}}/crypto/v1 && buf dep update
+
+  lint:
+    desc: Lint proto files
+    deps: [deps]
+    cmds:
+      - cd {{.SCHEMAS_DIR}}/attestor/v1 && buf lint
+
+  format:
+    desc: Format proto files
+    deps: [install]
+    cmds:
+      - cd {{.SCHEMAS_DIR}}/attestor/v1 && buf format -w
+
+  install:typescript:
+    desc: Install dependencies for JavaScript generation
+    cmds:
+      - mkdir -p logs
+      - npm install --silent >logs/npm-install.log 2>&1
+      - echo "JavaScript generation dependencies installed"
+
+  generate:typescript:
+    desc: Generate JavaScript clients using buf
+    deps: [install, install:typescript]
+    cmds:
+      - mkdir -p {{.DIST_DIR}}/typescript logs
+      - buf generate --template buf.gen.yaml {{.SCHEMAS_DIR}}/attestor/v1 >logs/buf-typescript-attestor.log 2>&1
+      - buf generate --template buf.gen.yaml {{.SCHEMAS_DIR}}/crypto/v1 >logs/buf-typescript-crypto.log 2>&1
+      - echo "JavaScript files generated in {{.DIST_DIR}}/typescript/"
+
+  generate:python:
+    desc: Generate Python clients  
+    deps: [install]
+    cmds:
+      - mkdir -p {{.DIST_DIR}}/python logs
+      - buf generate --template buf.gen.yaml {{.SCHEMAS_DIR}}/attestor/v1 >logs/buf-python-attestor.log 2>&1
+      - buf generate --template buf.gen.yaml {{.SCHEMAS_DIR}}/crypto/v1 >logs/buf-python-crypto.log 2>&1
+      - echo "Python files generated in {{.DIST_DIR}}/python/"
+
+  generate:go:
+    desc: Generate Go clients
+    deps: [install]  
+    cmds:
+      - mkdir -p {{.DIST_DIR}}/go logs
+      - buf generate --template buf.gen.yaml {{.SCHEMAS_DIR}}/attestor/v1 >logs/buf-go-attestor.log 2>&1
+      - buf generate --template buf.gen.yaml {{.SCHEMAS_DIR}}/crypto/v1 >logs/buf-go-crypto.log 2>&1
+      - cp templates/go.mod.template {{.DIST_DIR}}/go/go.mod
+      - |
+        if [ ! -f "{{.DIST_DIR}}/go/go.mod" ]; then
+          cd {{.DIST_DIR}}/go
+          go mod init github.com/cyberstorm-dev/schemas
+          go mod tidy
+        fi
+      - echo "Go files generated in {{.DIST_DIR}}/go/"
+
+  generate:openapi:
+    desc: Generate OpenAPI/Swagger specs
+    deps: [install]
+    cmds:
+      - mkdir -p {{.DIST_DIR}}/openapi {{.DIST_DIR}}/docs logs
+      - buf generate --template buf.gen.yaml {{.SCHEMAS_DIR}}/attestor/v1 >logs/buf-openapi-attestor.log 2>&1
+      - buf generate --template buf.gen.yaml {{.SCHEMAS_DIR}}/crypto/v1 >logs/buf-openapi-crypto.log 2>&1
+      - ./scripts/convert-swagger-to-openapi.sh
+      - echo "Swagger 2.0 and OpenAPI 3.0 files generated in {{.DIST_DIR}}/openapi/"
+
+  generate:all:
+    desc: Generate clients for all languages
+    deps: [lint, clean]
+    cmds:
+      - task: generate:typescript
+      - task: generate:python  
+      - task: generate:go
+      - task: generate:openapi
+
+  build:
+    desc: Full build - lint, format, and generate all clients
+    cmds:
+      - task: format
+      - task: lint
+      - task: generate:all
+
+  breaking:
+    desc: Check for breaking changes against main branch  
+    deps: [install]
+    cmds:
+      - buf breaking {{.SCHEMAS_DIR}}/attestor/v1 --against '.git#branch=main,subdir={{.SCHEMAS_DIR}}/attestor/v1'
+
+  check:typescript:
+    desc: Validate packaged JavaScript files exist and are syntactically valid
+    deps: [package:typescript]
+    cmds:
+      - ./scripts/check-typescript.sh
+
+  install:python:
+    desc: Install Python package in development mode
+    cmds:
+      - ./scripts/install-python.sh
+
+  check:python:
+    desc: Validate packaged Python package works
+    deps: [package:python]
+    cmds:
+      - ./scripts/check-python.sh
+
+  check:go:
+    desc: Validate packaged Go package works
+    deps: [package:go]
+    cmds:
+      - ./scripts/check-go.sh
+
+  check:openapi:
+    desc: Validate generated OpenAPI specs are valid JSON
+    deps: [generate:openapi]
+    cmds:
+      - echo "🔍 Checking OpenAPI generation..."
+      - python3 scripts/validate-swagger.py
+      - python3 scripts/validate-openapi.py
+      - echo "✅ OpenAPI generation validation complete"
+
+  check:all:
+    desc: Run all generation checks
+    deps: [clean, install]
+    cmds:
+      - task: check:typescript
+      - task: check:python
+      - task: check:go
+      - task: check:openapi
+      - echo "🎉 All generation checks passed!"
+
+
+  docs:
+    desc: Serve OpenAPI docs with Swagger UI (requires generate:openapi)
+    deps: [generate:openapi]
+    cmds:
+      - ./scripts/serve-docs.sh
+
+  package:typescript:
+    desc: Package TypeScript/JavaScript for npm distribution
+    deps: [generate:typescript]
+    cmds:
+      - ./scripts/build-typescript.sh
+
+  package:python:
+    desc: Package Python for PyPI distribution
+    deps: [generate:python, install:python]
+    cmds:
+      - ./scripts/build-python.sh
+
+  package:go:
+    desc: Package Go module for distribution
+    deps: [generate:go]
+    cmds:
+      - ./scripts/build-go.sh
+
+  package:all:
+    desc: Package all language targets for distribution
+    cmds:
+      - task: package:typescript
+      - task: package:python
+      - task: package:go
+
+  publish:typescript:
+    desc: Publish TypeScript/JavaScript package to npm
+    deps: [package:typescript]
+    cmds:
+      - ./scripts/publish-typescript.sh
+
+  publish:typescript:test:
+    desc: Publish TypeScript/JavaScript package to npm with beta tag
+    deps: [package:typescript]
+    cmds:
+      - ./scripts/publish-typescript.sh --test
+
+  publish:python:
+    desc: Publish Python package to PyPI
+    deps: [package:python]
+    cmds:
+      - ./scripts/publish-python.sh
+
+  publish:python:test:
+    desc: Publish Python package to TestPyPI
+    deps: [package:python]
+    cmds:
+      - ./scripts/publish-python.sh --test
+
+  publish:go:
+    desc: Publish Go module via Git tag
+    deps: [package:go]
+    cmds:
+      - echo "Usage - ./scripts/publish-go.sh <version> [--test]"
+      - echo "Example - ./scripts/publish-go.sh v1.0.0"
+
+  publish:go:test:
+    desc: Test Go module publishing (dry run)
+    deps: [package:go]
+    cmds:
+      - echo "Usage - ./scripts/publish-go.sh <version> --test"
+      - echo "Example - ./scripts/publish-go.sh v1.0.0 --test"
+
+  # Buf Schema Registry (BSR) tasks
+  buf:format:
+    desc: Format protobuf files using buf
+    deps: [install]
+    cmds:
+      - echo "🎨 Formatting protobuf files..."
+      - cd {{.SCHEMAS_DIR}}/attestor/v1 && buf format --write
+      - cd {{.SCHEMAS_DIR}}/crypto/v1 && buf format --write
+      - echo "✅ Protobuf files formatted"
+
+  buf:lint:
+    desc: Lint protobuf files using buf
+    deps: [deps]
+    cmds:
+      - echo "🔍 Linting protobuf files..."
+      - cd {{.SCHEMAS_DIR}}/attestor/v1 && buf lint
+      - cd {{.SCHEMAS_DIR}}/crypto/v1 && buf lint
+      - echo "✅ Protobuf files passed lint checks"
+
+  buf:build:
+    desc: Build protobuf files using buf
+    deps: [buf:lint]
+    cmds:
+      - echo "🔨 Building protobuf files..."
+      - cd {{.SCHEMAS_DIR}}/attestor/v1 && buf build
+      - cd {{.SCHEMAS_DIR}}/crypto/v1 && buf build
+      - echo "✅ Protobuf build successful"
+
+  buf:breaking:attestor:
+    desc: Check attestor module for breaking changes against main
+    deps: [install]
+    cmds:
+      - echo "🔍 Checking attestor for breaking changes..."
+      - buf breaking {{.SCHEMAS_DIR}}/attestor/v1 --against '.git#branch=main,subdir={{.SCHEMAS_DIR}}/attestor/v1'
+      - echo "✅ No breaking changes detected in attestor module"
+
+  buf:breaking:crypto:
+    desc: Check crypto module for breaking changes against main
+    deps: [install]
+    cmds:
+      - echo "🔍 Checking crypto for breaking changes..."
+      - buf breaking {{.SCHEMAS_DIR}}/crypto/v1 --against '.git#branch=main,subdir={{.SCHEMAS_DIR}}/crypto/v1'
+      - echo "✅ No breaking changes detected in crypto module"
+
+  buf:breaking:
+    desc: Check all modules for breaking changes
+    cmds:
+      - task: buf:breaking:attestor
+      - task: buf:breaking:crypto
+
+  buf:push:attestor:
+    desc: Push attestor module to Buf Schema Registry
+    deps: [install, buf:build]
+    cmds:
+      - echo "📤 Pushing attestor module to buf.build/cyberstorm/attestor..."
+      - cd {{.SCHEMAS_DIR}}/attestor/v1 && buf push
+      - echo "✅ Successfully pushed attestor to BSR"
+
+  buf:push:crypto:
+    desc: Push crypto module to Buf Schema Registry  
+    deps: [install, buf:build]
+    cmds:
+      - echo "📤 Pushing crypto module to buf.build/cyberstorm/crypto..."
+      - cd {{.SCHEMAS_DIR}}/crypto/v1 && buf push
+      - echo "✅ Successfully pushed crypto to BSR"
+
+  buf:push:
+    desc: Push all modules to their respective BSR repositories
+    cmds:
+      - task: buf:push:attestor
+      - task: buf:push:crypto
+
+  buf:push:draft:
+    desc: Push all modules to BSR with draft label
+    deps: [install, buf:build]
+    cmds:
+      - echo "📤 Pushing modules to buf.build/cyberstorm/attestor and crypto with draft label..."
+      - cd {{.SCHEMAS_DIR}}/attestor/v1 && buf push --label draft
+      - cd {{.SCHEMAS_DIR}}/crypto/v1 && buf push --label draft
+      - echo "✅ Successfully pushed all modules to BSR with draft label"
+
+  buf:push:create:
+    desc: Create BSR repositories and push all modules (first time only)
+    deps: [install, buf:build]
+    cmds:
+      - echo "📤 Creating buf.build/cyberstorm/attestor and crypto repositories..."
+      - cd {{.SCHEMAS_DIR}}/attestor/v1 && buf push --create
+      - cd {{.SCHEMAS_DIR}}/crypto/v1 && buf push --create
+      - echo "✅ Successfully created BSR repositories and pushed all modules"
