@@ -222,6 +222,8 @@ message SchemaDefinition {
 message SchemaDeployment {
   string contract_name = 1;
   string contract_address = 2;    // Schema UID
+  uint64 chain_id = 3;           // EVM chain ID (1 = Ethereum mainnet, 137 = Polygon, etc.)
+  string chain_name = 4;         // Human-readable chain name
 }
 
 message GetSchemaRequest {
