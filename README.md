@@ -186,6 +186,37 @@ Use [cyberstorm-attestor-client](https://github.com/cyberstorm-dev/attestor-clie
 - **🤖 Comprehensive CI/CD** with automated testing and publishing
 - **📊 Production-ready** data structures for enterprise adoption
 
+## Release Process
+
+### Unified Release and Publish Workflow
+
+The project uses a single GitHub Actions workflow for all release activities:
+
+**To create a new release:**
+
+1. Update version in all files to match (e.g., `1.0.5`):
+   - `pyproject.toml` (project.version)
+   - `package.json` (version)
+   - `package-lock.json` (version)
+
+2. Go to **Actions** → **Release and Publish** → **Run workflow**
+
+3. Enter the version number **without "v" prefix** (e.g., `1.0.5`)
+
+4. Select publishing options:
+   - ☐ **Publish to TestPyPI** (optional, for testing)
+   - ☐ **Publish to PyPI** (optional, for production)
+   - ☐ **Mark as prerelease** (optional)
+
+**The workflow will:**
+- ✅ Validate version format and consistency across all files
+- 🏗️ Build and test all language bindings
+- 🏷️ Create GitHub release with automatic "v" prefix (e.g., `v1.0.5`)
+- 📦 Upload TypeScript, Go, Python, and OpenAPI packages as release assets
+- 🐍 Optionally publish Python package to TestPyPI and/or PyPI
+
+**Version Format**: Always use semantic versioning without "v" prefix (e.g., `1.0.5`, `2.1.0-beta.1`)
+
 ## Documentation
 
 - **[Development Setup](docs/DEVELOPMENT.md)** - Complete setup guide for all platforms and IDEs
