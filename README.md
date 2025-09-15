@@ -81,7 +81,7 @@ deps:
 
 **TypeScript/JavaScript**
 ```bash
-npm install @cyberstorm/schemas
+npm install @cyberstorm-dev/schemas
 ```
 
 **Python**
