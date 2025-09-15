@@ -162,8 +162,8 @@ tasks:
       - echo "$BUF_TOKEN" | buf registry login --username token --token-stdin
       - task: buf:push
       - echo "🔍 Verifying BSR publication..."
-      - buf registry repository info buf.build/cyberstorm/attestor
-      - buf registry repository info buf.build/cyberstorm/crypto
+      - buf registry module info buf.build/cyberstorm/attestor
+      - buf registry module info buf.build/cyberstorm/crypto
       - echo "✅ BSR publication verified"
 
   clean:
