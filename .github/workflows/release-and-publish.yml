@@ -22,6 +22,11 @@ on:
         required: false
         type: boolean
         default: false
+      publish_to_npm:
+        description: 'Publish to NPM Registry'
+        required: false
+        type: boolean
+        default: false
       prerelease:
         description: 'Mark as prerelease'
         required: false
@@ -72,7 +77,7 @@ jobs:
     - name: Validate Taskfile.yml targets
       run: |
         echo "🔍 Checking required Taskfile targets..."
-        REQUIRED_TARGETS=("deps" "package:all" "check:all" "install:python" "install" "buf:build" "buf:push")
+        REQUIRED_TARGETS=("deps" "package:all" "check:all" "install:python" "install" "buf:build" "buf:push" "install:typescript" "package:typescript" "publish:python:testpypi" "publish:python:pypi" "publish:typescript:npm" "publish:bsr")
         ERRORS=0
         
         if [ ! -f "Taskfile.yml" ]; then
@@ -163,7 +168,7 @@ jobs:
     permissions:
       contents: write
     outputs:
-      release-created: ${{ steps.release.outputs.release-created }}
+      release-created: ${{ steps.verify_release.outputs.release-created }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -213,6 +218,19 @@ jobs:
         
         echo "✅ All archives created successfully"
 
+    - name: Check if release exists
+      id: check_release
+      run: |
+        if gh release view v${{ github.event.inputs.version }} >/dev/null 2>&1; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+          echo "📋 Release v${{ github.event.inputs.version }} already exists"
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "🆕 Release v${{ github.event.inputs.version }} will be created"
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Create GitHub Release
       id: release
       uses: softprops/action-gh-release@v2
@@ -260,8 +278,20 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Set release created output
-      run: echo "release-created=true" >> $GITHUB_OUTPUT
+    - name: Verify release and set output
+      id: verify_release
+      run: |
+        echo "🔍 Verifying release v${{ github.event.inputs.version }} exists..."
+        if gh release view v${{ github.event.inputs.version }} >/dev/null 2>&1; then
+          echo "release-created=true" >> $GITHUB_OUTPUT
+          echo "✅ Release v${{ github.event.inputs.version }} verified - publishing jobs can proceed"
+        else
+          echo "release-created=false" >> $GITHUB_OUTPUT
+          echo "❌ Release v${{ github.event.inputs.version }} not found - publishing jobs will be skipped"
+          exit 1
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish-to-testpypi:
     name: Publish to TestPyPI
@@ -269,18 +299,6 @@ jobs:
     needs: create-github-release
     if: ${{ github.event.inputs.publish_to_testpypi == 'true' && needs.create-github-release.outputs.release-created == 'true' }}
     steps:
-    - name: Check TestPyPI credentials
-      env:
-        TEST_PYPI_API_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
-      run: |
-        if [ -z "$TEST_PYPI_API_TOKEN" ]; then
-          echo "❌ TEST_PYPI_API_TOKEN secret not configured"
-          echo "Please add TEST_PYPI_API_TOKEN to repository secrets"
-          echo "Get token at: https://test.pypi.org/manage/account/token/"
-          exit 1
-        fi
-        echo "✅ TestPyPI credentials available"
-    
     - name: Checkout code
       uses: actions/checkout@v4
       with:
@@ -294,47 +312,16 @@ jobs:
     - name: Install Task
       uses: arduino/setup-task@v1
 
-    - name: Install dependencies
-      run: task install:python
-
     - name: Download build artifacts
       uses: actions/download-artifact@v4
       with:
         name: dist-packages
         path: dist/
 
-    - name: Install twine
-      run: |
-        if [ -f "./venv/bin/pip" ]; then
-          ./venv/bin/pip install twine --quiet
-        else
-          python -m pip install twine --quiet
-        fi
-
-    - name: Check package before upload
-      run: |
-        if [ -f "./venv/bin/twine" ]; then
-          ./venv/bin/twine check dist/python-dist/*
-        else
-          python -m twine check dist/python-dist/*
-        fi
-
-    - name: List package files
-      run: |
-        echo "📦 Package files to upload to TestPyPI:"
-        ls -la dist/python-dist/
-
     - name: Publish to TestPyPI
       env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
-      run: |
-        if [ -f "./venv/bin/twine" ]; then
-          ./venv/bin/twine upload --repository testpypi --verbose --skip-existing dist/python-dist/*
-        else
-          python -m twine upload --repository testpypi --verbose --skip-existing dist/python-dist/*
-        fi
-        echo "✅ Successfully published to TestPyPI"
+        TEST_PYPI_API_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
+      run: task publish:python:testpypi
 
   publish-to-pypi:
     name: Publish to PyPI
@@ -342,18 +329,6 @@ jobs:
     needs: [create-github-release, publish-to-testpypi]
     if: ${{ github.event.inputs.publish_to_pypi == 'true' && needs.create-github-release.outputs.release-created == 'true' && always() && (needs.publish-to-testpypi.result == 'success' || needs.publish-to-testpypi.result == 'skipped') }}
     steps:
-    - name: Check PyPI credentials
-      env:
-        PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-      run: |
-        if [ -z "$PYPI_API_TOKEN" ]; then
-          echo "❌ PYPI_API_TOKEN secret not configured"
-          echo "Please add PYPI_API_TOKEN to repository secrets"
-          echo "Get token at: https://pypi.org/manage/account/token/"
-          exit 1
-        fi
-        echo "✅ PyPI credentials available"
-    
     - name: Checkout code
       uses: actions/checkout@v4
       with:
@@ -367,47 +342,16 @@ jobs:
     - name: Install Task
       uses: arduino/setup-task@v1
 
-    - name: Install dependencies
-      run: task install:python
-
     - name: Download build artifacts
       uses: actions/download-artifact@v4
       with:
         name: dist-packages
         path: dist/
 
-    - name: Install twine
-      run: |
-        if [ -f "./venv/bin/pip" ]; then
-          ./venv/bin/pip install twine --quiet
-        else
-          python -m pip install twine --quiet
-        fi
-
-    - name: Check package before upload
-      run: |
-        if [ -f "./venv/bin/twine" ]; then
-          ./venv/bin/twine check dist/python-dist/*
-        else
-          python -m twine check dist/python-dist/*
-        fi
-
-    - name: List package files
-      run: |
-        echo "📦 Package files to upload to PyPI:"
-        ls -la dist/python-dist/
-
     - name: Publish to PyPI
       env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-      run: |
-        if [ -f "./venv/bin/twine" ]; then
-          ./venv/bin/twine upload --verbose dist/python-dist/*
-        else
-          python -m twine upload --verbose dist/python-dist/*
-        fi
-        echo "✅ Successfully published to PyPI"
+        PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+      run: task publish:python:pypi
 
   publish-to-bsr:
     name: Publish to Buf Schema Registry
@@ -415,18 +359,6 @@ jobs:
     needs: [create-github-release]
     if: ${{ github.event.inputs.publish_to_bsr == 'true' && needs.create-github-release.outputs.release-created == 'true' }}
     steps:
-    - name: Check BSR credentials
-      env:
-        BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
-      run: |
-        if [ -z "$BUF_TOKEN" ]; then
-          echo "❌ BUF_TOKEN secret not configured"
-          echo "Please add BUF_TOKEN to repository secrets"
-          echo "Generate token with: buf registry token create --name 'GitHub-Actions'"
-          exit 1
-        fi
-        echo "✅ BSR credentials available"
-    
     - name: Checkout code
       uses: actions/checkout@v4
       with:
@@ -435,28 +367,33 @@ jobs:
     - name: Install Task
       uses: arduino/setup-task@v1
 
-    - name: Install dependencies
-      run: task install
-
-    - name: Build schemas
-      run: task buf:build
-
-    - name: Authenticate with BSR
+    - name: Publish to BSR
       env:
         BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
-      run: |
-        echo "$BUF_TOKEN" | buf registry login --username token --token-stdin
-        echo "✅ Successfully authenticated with BSR"
+      run: task publish:bsr
 
-    - name: Publish to BSR
-      run: |
-        echo "📤 Publishing modules to Buf Schema Registry..."
-        task buf:push
-        echo "✅ Successfully published all modules to BSR"
+  publish-to-npm:
+    name: Publish to NPM Registry
+    runs-on: ubuntu-latest
+    needs: [create-github-release]
+    if: ${{ github.event.inputs.publish_to_npm == 'true' && needs.create-github-release.outputs.release-created == 'true' }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
 
-    - name: Verify BSR publication
-      run: |
-        echo "🔍 Verifying BSR publication..."
-        buf registry repository info buf.build/cyberstorm/attestor
-        buf registry repository info buf.build/cyberstorm/crypto
-        echo "✅ BSR publication verified"
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        registry-url: 'https://registry.npmjs.org'
+
+    - name: Install Task
+      uses: arduino/setup-task@v1
+
+    - name: Publish to NPM
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      run: task publish:typescript:npm

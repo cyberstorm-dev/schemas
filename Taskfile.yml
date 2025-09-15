@@ -89,6 +89,83 @@ tasks:
           echo "✅ All version checks passed - ready to release {{.VERSION}}"
         fi
 
+  validate:credentials:testpypi:
+    desc: Validate TestPyPI credentials are available
+    cmds:
+      - |
+        if [ -z "$TEST_PYPI_API_TOKEN" ]; then
+          echo "❌ TEST_PYPI_API_TOKEN environment variable not set"
+          echo "Please set TEST_PYPI_API_TOKEN to publish to TestPyPI"
+          echo "Get token at: https://test.pypi.org/manage/account/token/"
+          exit 1
+        fi
+        echo "✅ TestPyPI credentials available"
+
+  validate:credentials:pypi:
+    desc: Validate PyPI credentials are available
+    cmds:
+      - |
+        if [ -z "$PYPI_API_TOKEN" ]; then
+          echo "❌ PYPI_API_TOKEN environment variable not set"
+          echo "Please set PYPI_API_TOKEN to publish to PyPI"
+          echo "Get token at: https://pypi.org/manage/account/token/"
+          exit 1
+        fi
+        echo "✅ PyPI credentials available"
+
+  validate:credentials:npm:
+    desc: Validate NPM credentials are available
+    cmds:
+      - |
+        if [ -z "$NPM_TOKEN" ]; then
+          echo "❌ NPM_TOKEN environment variable not set"
+          echo "Please set NPM_TOKEN to publish to NPM"
+          echo "Get token at: https://www.npmjs.com/settings/tokens"
+          exit 1
+        fi
+        echo "✅ NPM credentials available"
+
+  validate:credentials:bsr:
+    desc: Validate BSR credentials are available
+    cmds:
+      - |
+        if [ -z "$BUF_TOKEN" ]; then
+          echo "❌ BUF_TOKEN environment variable not set"
+          echo "Please set BUF_TOKEN to publish to BSR"
+          echo "Generate token with: buf registry token create --name 'local-publish'"
+          exit 1
+        fi
+        echo "✅ BSR credentials available"
+
+  publish:python:testpypi:
+    desc: Publish Python package to TestPyPI with credential validation
+    deps: [validate:credentials:testpypi, package:python]
+    cmds:
+      - ./scripts/publish-python.sh --test
+
+  publish:python:pypi:
+    desc: Publish Python package to PyPI with credential validation  
+    deps: [validate:credentials:pypi, package:python]
+    cmds:
+      - ./scripts/publish-python.sh
+
+  publish:typescript:npm:
+    desc: Publish TypeScript package to NPM with credential validation
+    deps: [validate:credentials:npm, package:typescript]
+    cmds:
+      - ./scripts/publish-typescript.sh
+
+  publish:bsr:
+    desc: Publish all modules to BSR with credential validation
+    deps: [validate:credentials:bsr, buf:build]
+    cmds:
+      - echo "$BUF_TOKEN" | buf registry login --username token --token-stdin
+      - task: buf:push
+      - echo "🔍 Verifying BSR publication..."
+      - buf registry repository info buf.build/cyberstorm/attestor
+      - buf registry repository info buf.build/cyberstorm/crypto
+      - echo "✅ BSR publication verified"
+
   clean:
     desc: Clean generated files
     cmds:

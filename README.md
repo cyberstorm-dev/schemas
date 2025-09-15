@@ -207,6 +207,7 @@ The project uses a single GitHub Actions workflow for all release activities:
    - ☐ **Publish to TestPyPI** (optional, for testing)
    - ☐ **Publish to PyPI** (optional, for production)
    - ☐ **Publish to Buf Schema Registry (BSR)** (optional, for proto schemas)
+   - ☐ **Publish to NPM Registry** (optional, for TypeScript/JavaScript)
    - ☐ **Mark as prerelease** (optional)
 
 **The workflow will:**
@@ -216,6 +217,7 @@ The project uses a single GitHub Actions workflow for all release activities:
 - 📦 Upload TypeScript, Go, Python, and OpenAPI packages as release assets
 - 🐍 Optionally publish Python package to TestPyPI and/or PyPI
 - 📡 Optionally publish Protocol Buffer schemas to Buf Schema Registry
+- 📦 Optionally publish TypeScript/JavaScript package to NPM Registry
 
 **Version Format**: Always use semantic versioning without "v" prefix (e.g., `1.0.5`, `2.1.0-beta.1`)
 
@@ -226,6 +228,7 @@ To enable optional publishing features, configure these repository secrets in Se
 - **`TEST_PYPI_API_TOKEN`** - For TestPyPI publishing ([get token](https://test.pypi.org/manage/account/token/))
 - **`PYPI_API_TOKEN`** - For PyPI publishing ([get token](https://pypi.org/manage/account/token/))  
 - **`BUF_TOKEN`** - For BSR publishing (generate with: `buf registry token create --name "GitHub-Actions"`)
+- **`NPM_TOKEN`** - For NPM publishing ([get token](https://www.npmjs.com/settings/tokens))
 
 ## Documentation
 
