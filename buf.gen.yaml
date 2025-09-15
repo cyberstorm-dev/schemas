@@ -37,4 +37,5 @@ plugins:
     out: dist/openapi
     opt:
       - logtostderr=true
+      - json_names_for_fields=false
     include_imports: true
