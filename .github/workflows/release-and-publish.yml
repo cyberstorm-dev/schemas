@@ -72,12 +72,7 @@ jobs:
         
         # Check pyproject.toml
         if [ -f "pyproject.toml" ]; then
-          PYPROJECT_VERSION=$(python -c "
-import tomllib
-with open('pyproject.toml', 'rb') as f:
-    data = tomllib.load(f)
-    print(data['project']['version'])
-")
+          PYPROJECT_VERSION=$(python3 -c "import tomllib; f=open('pyproject.toml','rb'); data=tomllib.load(f); print(data['project']['version'])")
           echo "pyproject.toml version: $PYPROJECT_VERSION"
           if [ "$PYPROJECT_VERSION" != "$VERSION" ]; then
             echo "❌ Version mismatch in pyproject.toml: expected $VERSION, found $PYPROJECT_VERSION"
