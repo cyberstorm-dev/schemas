@@ -17,6 +17,11 @@ on:
         required: false
         type: boolean
         default: false
+      publish_to_bsr:
+        description: 'Publish to Buf Schema Registry (BSR)'
+        required: false
+        type: boolean
+        default: false
       prerelease:
         description: 'Mark as prerelease'
         required: false
@@ -67,7 +72,7 @@ jobs:
     - name: Validate Taskfile.yml targets
       run: |
         echo "🔍 Checking required Taskfile targets..."
-        REQUIRED_TARGETS=("deps" "package:all" "check:all" "install:python")
+        REQUIRED_TARGETS=("deps" "package:all" "check:all" "install:python" "install" "buf:build" "buf:push")
         ERRORS=0
         
         if [ ! -f "Taskfile.yml" ]; then
@@ -264,6 +269,18 @@ jobs:
     needs: create-github-release
     if: ${{ github.event.inputs.publish_to_testpypi == 'true' && needs.create-github-release.outputs.release-created == 'true' }}
     steps:
+    - name: Check TestPyPI credentials
+      env:
+        TEST_PYPI_API_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
+      run: |
+        if [ -z "$TEST_PYPI_API_TOKEN" ]; then
+          echo "❌ TEST_PYPI_API_TOKEN secret not configured"
+          echo "Please add TEST_PYPI_API_TOKEN to repository secrets"
+          echo "Get token at: https://test.pypi.org/manage/account/token/"
+          exit 1
+        fi
+        echo "✅ TestPyPI credentials available"
+    
     - name: Checkout code
       uses: actions/checkout@v4
       with:
@@ -325,6 +342,18 @@ jobs:
     needs: [create-github-release, publish-to-testpypi]
     if: ${{ github.event.inputs.publish_to_pypi == 'true' && needs.create-github-release.outputs.release-created == 'true' && always() && (needs.publish-to-testpypi.result == 'success' || needs.publish-to-testpypi.result == 'skipped') }}
     steps:
+    - name: Check PyPI credentials
+      env:
+        PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+      run: |
+        if [ -z "$PYPI_API_TOKEN" ]; then
+          echo "❌ PYPI_API_TOKEN secret not configured"
+          echo "Please add PYPI_API_TOKEN to repository secrets"
+          echo "Get token at: https://pypi.org/manage/account/token/"
+          exit 1
+        fi
+        echo "✅ PyPI credentials available"
+    
     - name: Checkout code
       uses: actions/checkout@v4
       with:
@@ -379,3 +408,55 @@ jobs:
           python -m twine upload --verbose dist/python-dist/*
         fi
         echo "✅ Successfully published to PyPI"
+
+  publish-to-bsr:
+    name: Publish to Buf Schema Registry
+    runs-on: ubuntu-latest
+    needs: [create-github-release]
+    if: ${{ github.event.inputs.publish_to_bsr == 'true' && needs.create-github-release.outputs.release-created == 'true' }}
+    steps:
+    - name: Check BSR credentials
+      env:
+        BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
+      run: |
+        if [ -z "$BUF_TOKEN" ]; then
+          echo "❌ BUF_TOKEN secret not configured"
+          echo "Please add BUF_TOKEN to repository secrets"
+          echo "Generate token with: buf registry token create --name 'GitHub-Actions'"
+          exit 1
+        fi
+        echo "✅ BSR credentials available"
+    
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install Task
+      uses: arduino/setup-task@v1
+
+    - name: Install dependencies
+      run: task install
+
+    - name: Build schemas
+      run: task buf:build
+
+    - name: Authenticate with BSR
+      env:
+        BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
+      run: |
+        echo "$BUF_TOKEN" | buf registry login --username token --token-stdin
+        echo "✅ Successfully authenticated with BSR"
+
+    - name: Publish to BSR
+      run: |
+        echo "📤 Publishing modules to Buf Schema Registry..."
+        task buf:push
+        echo "✅ Successfully published all modules to BSR"
+
+    - name: Verify BSR publication
+      run: |
+        echo "🔍 Verifying BSR publication..."
+        buf registry repository info buf.build/cyberstorm/attestor
+        buf registry repository info buf.build/cyberstorm/crypto
+        echo "✅ BSR publication verified"
