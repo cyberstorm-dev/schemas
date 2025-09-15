@@ -17,6 +17,78 @@ tasks:
     cmds:
       - task: check:all
 
+  validate:version:
+    desc: Validate version consistency across project files
+    vars:
+      VERSION: "{{.CLI_ARGS}}"
+    cmds:
+      - |
+        if [ -z "{{.VERSION}}" ]; then
+          echo "❌ Usage: task validate:version -- <version>"
+          echo "Example: task validate:version -- 1.0.5"
+          exit 1
+        fi
+        
+        echo "🔍 Checking version consistency across project files..."
+        echo "Expected version: {{.VERSION}}"
+        echo
+        
+        ERRORS=0
+        
+        # Check pyproject.toml
+        if [ -f "pyproject.toml" ]; then
+          PYPROJECT_VERSION=$(python3 -c "import tomllib; f=open('pyproject.toml','rb'); data=tomllib.load(f); print(data['project']['version'])")
+          echo "pyproject.toml version: $PYPROJECT_VERSION"
+          if [ "$PYPROJECT_VERSION" != "{{.VERSION}}" ]; then
+            echo "❌ Version mismatch in pyproject.toml: expected {{.VERSION}}, found $PYPROJECT_VERSION"
+            ERRORS=$((ERRORS + 1))
+          else
+            echo "✅ pyproject.toml version matches"
+          fi
+        else
+          echo "❌ pyproject.toml not found"
+          ERRORS=$((ERRORS + 1))
+        fi
+        
+        # Check package.json
+        if [ -f "package.json" ]; then
+          PACKAGE_VERSION=$(node -e "console.log(require('./package.json').version)")
+          echo "package.json version: $PACKAGE_VERSION"
+          if [ "$PACKAGE_VERSION" != "{{.VERSION}}" ]; then
+            echo "❌ Version mismatch in package.json: expected {{.VERSION}}, found $PACKAGE_VERSION"
+            ERRORS=$((ERRORS + 1))
+          else
+            echo "✅ package.json version matches"
+          fi
+        else
+          echo "❌ package.json not found"
+          ERRORS=$((ERRORS + 1))
+        fi
+        
+        # Check package-lock.json
+        if [ -f "package-lock.json" ]; then
+          PACKAGE_LOCK_VERSION=$(node -e "console.log(require('./package-lock.json').version)")
+          echo "package-lock.json version: $PACKAGE_LOCK_VERSION"
+          if [ "$PACKAGE_LOCK_VERSION" != "{{.VERSION}}" ]; then
+            echo "❌ Version mismatch in package-lock.json: expected {{.VERSION}}, found $PACKAGE_LOCK_VERSION"
+            ERRORS=$((ERRORS + 1))
+          else
+            echo "✅ package-lock.json version matches"
+          fi
+        else
+          echo "❌ package-lock.json not found"
+          ERRORS=$((ERRORS + 1))
+        fi
+        
+        echo
+        if [ $ERRORS -gt 0 ]; then
+          echo "❌ Found $ERRORS version inconsistency error(s)"
+          echo "Please update all version fields to match {{.VERSION}} before releasing"
+          exit 1
+        else
+          echo "✅ All version checks passed - ready to release {{.VERSION}}"
+        fi
+
   clean:
     desc: Clean generated files
     cmds:

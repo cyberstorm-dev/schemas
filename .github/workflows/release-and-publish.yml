@@ -61,68 +61,42 @@ jobs:
       with:
         node-version: '18'
 
-    - name: Validate version consistency across files
+    - name: Install Task
+      uses: arduino/setup-task@v1
+      
+    - name: Validate Taskfile.yml targets
       run: |
-        VERSION="${{ github.event.inputs.version }}"
+        echo "🔍 Checking required Taskfile targets..."
+        REQUIRED_TARGETS=("deps" "package:all" "check:all" "install:python")
         ERRORS=0
         
-        echo "🔍 Checking version consistency across project files..."
-        echo "Expected version: $VERSION"
-        echo
-        
-        # Check pyproject.toml
-        if [ -f "pyproject.toml" ]; then
-          PYPROJECT_VERSION=$(python3 -c "import tomllib; f=open('pyproject.toml','rb'); data=tomllib.load(f); print(data['project']['version'])")
-          echo "pyproject.toml version: $PYPROJECT_VERSION"
-          if [ "$PYPROJECT_VERSION" != "$VERSION" ]; then
-            echo "❌ Version mismatch in pyproject.toml: expected $VERSION, found $PYPROJECT_VERSION"
-            ERRORS=$((ERRORS + 1))
-          else
-            echo "✅ pyproject.toml version matches"
-          fi
-        else
-          echo "❌ pyproject.toml not found"
-          ERRORS=$((ERRORS + 1))
-        fi
-        
-        # Check package.json
-        if [ -f "package.json" ]; then
-          PACKAGE_VERSION=$(node -e "console.log(require('./package.json').version)")
-          echo "package.json version: $PACKAGE_VERSION"
-          if [ "$PACKAGE_VERSION" != "$VERSION" ]; then
-            echo "❌ Version mismatch in package.json: expected $VERSION, found $PACKAGE_VERSION"
-            ERRORS=$((ERRORS + 1))
-          else
-            echo "✅ package.json version matches"
-          fi
-        else
-          echo "❌ package.json not found"
-          ERRORS=$((ERRORS + 1))
-        fi
-        
-        # Check package-lock.json
-        if [ -f "package-lock.json" ]; then
-          PACKAGE_LOCK_VERSION=$(node -e "console.log(require('./package-lock.json').version)")
-          echo "package-lock.json version: $PACKAGE_LOCK_VERSION"
-          if [ "$PACKAGE_LOCK_VERSION" != "$VERSION" ]; then
-            echo "❌ Version mismatch in package-lock.json: expected $VERSION, found $PACKAGE_LOCK_VERSION"
-            ERRORS=$((ERRORS + 1))
-          else
-            echo "✅ package-lock.json version matches"
-          fi
-        else
-          echo "❌ package-lock.json not found"
-          ERRORS=$((ERRORS + 1))
-        fi
-        
-        echo
-        if [ $ERRORS -gt 0 ]; then
-          echo "❌ Found $ERRORS version inconsistency error(s)"
-          echo "Please update all version fields to match $VERSION before releasing"
+        if [ ! -f "Taskfile.yml" ]; then
+          echo "❌ Taskfile.yml not found"
           exit 1
-        else
-          echo "✅ All version checks passed - ready to release $VERSION"
         fi
+        
+        echo "Available tasks:"
+        TASK_LIST=$(task --list)
+        echo "$TASK_LIST"
+        echo
+        
+        for target in "${REQUIRED_TARGETS[@]}"; do
+          if echo "$TASK_LIST" | grep -q "^\* $target:"; then
+            echo "✅ Found required task: $target"
+          else
+            echo "❌ Required task target missing: $target"
+            ERRORS=$((ERRORS + 1))
+          fi
+        done
+        
+        if [ $ERRORS -gt 0 ]; then
+          echo "❌ Missing $ERRORS required Taskfile targets"
+          exit 1
+        fi
+        echo "✅ All required Taskfile targets found"
+      
+    - name: Validate version consistency across files
+      run: task validate:version -- ${{ github.event.inputs.version }}
 
   build-and-test:
     name: Build and Test
