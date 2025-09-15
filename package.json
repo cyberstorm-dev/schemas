@@ -1,6 +1,6 @@
 {
   "name": "@cyberstorm/schemas",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Protocol Buffer schemas and generated clients for Cyberstorm services",
   "main": "src/index.js",
   "scripts": {
