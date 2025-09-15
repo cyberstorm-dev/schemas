@@ -339,6 +339,7 @@ message ValidateIdentityRequest {
   string identifier = 1;
   string proof_url = 2;
   string registrant = 3;
+  string registrant_signature = 4;  // Signature proving registrant controls the claimed address
 }
 
 message ValidateIdentityResponse {
